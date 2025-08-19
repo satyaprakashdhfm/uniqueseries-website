@@ -1,0 +1,335 @@
+/* =============================================================================
+   PAYMENT.CSS - Payment/checkout page styles
+   Purpose: Layout, form, summary, empty-cart states, responsive behavior.
+   Notes: Conservative cleanup only; do not change appearance/behavior.
+   ============================================================================= */
+
+.payment-page {
+  padding: 2rem 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 35%, #fdf2f8 100%);
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.page-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  font-size: 1.05rem;
+  color: #64748b;
+}
+
+.empty-cart {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Payment Content Grid */
+.payment-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr; /* summary first (narrow), form second (wide) */
+  gap: 3rem;
+  align-items: start;
+}
+
+.payment-form-section {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 18px;
+  padding: 2.25rem;
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.08);
+  border: 1px solid rgba(2, 6, 23, 0.06);
+}
+
+/* Form Sections */
+.form-section {
+  margin-bottom: 3rem;
+}
+
+.form-section h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 1.25rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+}
+
+.payment-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.payment-method {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
+}
+
+.payment-method:hover {
+  border-color: #7c3aed;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(2, 6, 23, 0.06);
+}
+
+.payment-method.selected {
+  border-color: #7c3aed;
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.06), rgba(124, 58, 237, 0.02));
+}
+
+.payment-method input[type="radio"] {
+  display: none;
+}
+
+.method-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.payment-method span:last-child {
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.card-form,
+.upi-form {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.06), rgba(124, 58, 237, 0.02));
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.cod-message {
+  background: rgba(40, 167, 69, 0.1);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.cod-message p {
+  color: #28a745;
+  font-weight: 600;
+  margin: 0;
+}
+
+.place-order-btn {
+  width: 100%;
+  padding: 16px 18px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  color: #ffffff;
+  background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.place-order-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(124, 58, 237, 0.28);
+  filter: brightness(1.03);
+}
+
+.place-order-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 10px 20px rgba(124, 58, 237, 0.22);
+}
+
+.place-order-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), 0 0 0 8px rgba(124, 58, 237, 0.2);
+}
+
+.order-summary {
+  position: sticky;
+  top: 2rem;
+}
+
+.summary-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+}
+
+.order-items {
+  margin-bottom: 1.5rem;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.item-details h4 {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+}
+
+.item-details p {
+  font-size: 0.85rem;
+  color: #667085;
+  margin: 0;
+}
+
+/* Tidy customization lines under each item */
+.item-customization {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.item-price {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+/* Inline coupon error under input */
+.coupon-error {
+  margin-top: 6px;
+  background: #fee2e2; /* red-100 */
+  border: 1px solid #fecaca; /* red-200 */
+  color: #b91c1c; /* red-700 */
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  color: #6c757d;
+}
+
+.summary-divider {
+  border: none;
+  border-top: 1px solid #e9ecef;
+  margin: 1.5rem 0;
+}
+
+.total-row {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* Summary footnote under total */
+.summary-note {
+  margin-top: 8px;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .payment-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .payment-form-section,
+  .summary-card {
+    padding: 1.5rem;
+  }
+
+  /* Prevent overlap: disable sticky summary on small screens */
+  .order-summary {
+    position: static;
+    top: auto;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .payment-methods {
+    grid-template-columns: 1fr;
+  }
+  
+  .card-form,
+  .upi-form {
+    padding: 1.5rem;
+  }
+}

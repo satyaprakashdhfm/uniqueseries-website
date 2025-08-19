@@ -1,0 +1,134 @@
+/* ==========================================================================
+   APP.CSS - Global Application Styles
+   ========================================================================== */
+
+/* Main App Container */
+.App {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f3f0 0%, #e8e4e0 100%);
+}
+
+/* ==========================================================================
+   LAYOUT COMPONENTS
+   ========================================================================== */
+
+/* Main Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 8px;
+}
+
+/* ==========================================================================
+   BUTTON COMPONENTS
+   ========================================================================== */
+
+/* Base Button Styles */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+/* Primary Button */
+.btn-primary {
+  background: linear-gradient(135deg, #d63384 0%, #e91e63 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(214, 51, 132, 0.3);
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+  color: white;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(111, 66, 193, 0.3);
+}
+
+/* Outline Button */
+.btn-outline {
+  background: transparent;
+  border: 2px solid #d63384;
+  color: #d63384;
+}
+
+.btn-outline:hover {
+  background: #d63384;
+  color: white;
+}
+
+/* ==========================================================================
+   CARD COMPONENTS
+   ========================================================================== */
+
+/* Base Card Styles */
+.card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.07);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================================================
+   TYPOGRAPHY
+   ========================================================================== */
+
+/* Section Titles */
+.section-title {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 1.1rem;
+  text-align: center;
+}
+
+/* Section Subtitles */
+.section-subtitle {
+  font-size: 1.08rem;
+  color: #6c757d;
+  text-align: center;
+  margin-bottom: 1.3rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+  }
+  
+  .btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}

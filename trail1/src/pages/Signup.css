@@ -1,0 +1,146 @@
+/* =============================================================================
+   SIGNUP.CSS - Signup page styles
+   Purpose: Styling for the signup view. Mirrors Login for visual parity.
+   Notes: Conservative cleanup only; do not change appearance/behavior.
+   ============================================================================= */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 450px;
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 3rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.login-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+  color: #6c757d;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-form {
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #d63384;
+  box-shadow: 0 0 0 3px rgba(214, 51, 132, 0.1);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.login-footer {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-footer p {
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  color: #d63384;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-left: 0.5rem;
+}
+
+.toggle-btn:hover {
+  color: #b02a5b;
+}
+
+.signup-link {
+  background: none;
+  border: none;
+  color: #d63384;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-left: 0.5rem;
+}
+
+.signup-link:hover {
+  color: #b02a5b;
+}
+
+.demo-credentials {
+  background: rgba(214, 51, 132, 0.1);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid rgba(214, 51, 132, 0.2);
+}
+
+.demo-credentials p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+.demo-credentials p:first-child {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .login-card {
+    padding: 2rem;
+    margin: 0 1rem;
+  }
+  
+  .login-title {
+    font-size: 1.5rem;
+  }
+}

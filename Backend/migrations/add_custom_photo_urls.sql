@@ -1,0 +1,2 @@
+-- NO-OP migration placeholder: database changes disabled per request.
+-- Intentionally left blank to avoid altering the schema.

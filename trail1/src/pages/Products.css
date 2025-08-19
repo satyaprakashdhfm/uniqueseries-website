@@ -1,0 +1,190 @@
+/* =============================================================================
+   PRODUCTS.CSS - Products listing/category page styles
+   Purpose: Grid, cards, features, and responsive rules for products page.
+   Notes: Conservative cleanup only; do not change appearance/behavior.
+   ============================================================================= */
+
+.products-page {
+  padding: 2rem 0;
+  min-height: 100vh;
+}
+
+/* Page Header */
+.page-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.page-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.page-subtitle {
+  font-size: 1.2rem;
+  color: #6c757d;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Products Grid */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.product-category-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.product-category-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.category-image {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.category-icon {
+  font-size: 4rem;
+  display: inline-block;
+}
+
+/* Category Content */
+/* TODO: Potentially unused selector. Verify if any container uses className='category-content' before removing. */
+.category-content {
+  text-align: center;
+}
+
+.category-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.category-description {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+/* Category Items List */
+.category-items {
+  background: rgba(214, 51, 132, 0.05);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.category-items h4 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.items-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.items-list li {
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.items-list li::before {
+  content: '•';
+  color: #d63384;
+  position: absolute;
+  left: 0;
+}
+
+.category-btn {
+  width: 100%;
+  padding: 12px 24px;
+}
+
+/* Why Choose Us Section */
+.why-choose-us {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  padding: 3rem;
+  text-align: center;
+}
+
+.why-choose-us h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 2rem;
+}
+
+/* Features Grid */
+/* TODO: Duplicated naming with Home.css. Safe to keep now; consider consolidating shared feature styles later to a common file. */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.feature-item {
+  /* TODO: Duplicated naming with Cart/Home features. Keep as-is to preserve visuals; consider shared utility later. */
+  padding: 0.75rem;
+}
+
+.feature-icon {
+  font-size: 1.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.feature-item h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+}
+
+.feature-item p {
+  color: #6c757d;
+  line-height: 1.3;
+  font-size: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .product-category-card {
+    padding: 1.5rem;
+  }
+  
+  .why-choose-us {
+    padding: 2rem;
+  }
+  
+  .why-choose-us h2 {
+    font-size: 2rem;
+  }
+}
