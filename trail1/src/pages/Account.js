@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 import api, { authAPI, orderAPI } from '../services/api';
 import './Account.css';
 
+// Helper utils (component-level scope so ESLint sees them everywhere)
+const isHttp = (s) => typeof s === 'string' && /^https?:\/\//i.test(s);
+const isCloudinaryFolderUrl = (u) => isHttp(u) && /\/image\/upload\//.test(u) && /\/$/.test(u);
+const folderFromCloudinaryUrl = (u) => {
+  const m = u.match(/image\/upload\/(.*)$/);
+  return m ? m[1] : '';
+};
+
 const Account = () => {
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -32,16 +40,22 @@ const Account = () => {
   useEffect(() => {
     const fetchFolderImages = async () => {
       if (!Array.isArray(orders) || orders.length === 0) return;
-      const isHttp = (s) => typeof s === 'string' && /^https?:\/\//i.test(s);
       const tasks = [];
       orders.forEach((ord) => {
         if (!Array.isArray(ord.items)) return;
         ord.items.forEach((it, idx) => {
           const val = it.custom_photo_url;
-          if (val && !isHttp(val)) {
+          if (!val) return;
+          let folder = '';
+          if (!isHttp(val)) {
+            folder = val;
+          } else if (isCloudinaryFolderUrl(val)) {
+            folder = folderFromCloudinaryUrl(val);
+          }
+          if (folder) {
             const key = `${ord.order_number}:${idx}`;
             tasks.push(
-              api.get('/upload/list', { params: { folder: val } })
+              api.get('/upload/list', { params: { folder } })
                 .then((resp) => ({ key, urls: (resp.data?.images || []).map((x) => x.imageUrl).filter(Boolean) }))
                 .catch(() => ({ key, urls: [] }))
             );
@@ -101,10 +115,10 @@ const Account = () => {
                 <div className="order-row" key={ord.order_number}>
                   <div className="order-main">
                     <div className="order-id">#{ord.order_number}</div>
-                    <div className="order-product">{ord.items && ord.items.length > 0 ? `${ord.items.length} item(s)` : 'No items'}</div>
+                    <div className="order-product">{ord.items?.length ?? 0} item(s)</div>
                   </div>
                   <div className="order-meta">
-                    <div><strong>Total:</strong> ₹{Number(ord.order_amount || 0).toFixed(2)}</div>
+                    <div><strong>Total:</strong> ₹{Number(ord.total_amount || ord.order_amount || 0).toFixed(2)}</div>
                     {(() => {
                       const status = (ord.payment_status || ord.status || '').toLowerCase();
                       const cls = status === 'completed' ? 'status-badge status-completed' : status === 'pending' ? 'status-badge status-pending' : status === 'failed' ? 'status-badge status-failed' : 'status-badge';
@@ -118,13 +132,13 @@ const Account = () => {
                   {Array.isArray(ord.items) && ord.items.length > 0 && (
                     <div className="order-items">
                       {ord.items.map((it, idx) => (
-                        <div key={idx} className="order-item-line">
+                        <div key={idx} className="order-item-line" style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.7fr 1fr 1fr', gap: 10, padding: '10px 12px', alignItems: 'center', border: '1px dashed var(--border)' }}>
                           <span className="item-name">{it.product_name}</span>
                           <span className="item-qty">Qty: {it.quantity}</span>
                           <span className="item-unit">Unit: ₹{Number(it.unit_price || 0).toFixed(2)}</span>
                           <span className="item-subtotal">Subtotal: ₹{(Number(it.unit_price || 0) * Number(it.quantity || 0)).toFixed(2)}</span>
                           {it.price_breakdown && (
-                            <div style={{ marginTop: 6, padding: 8, background: '#fafafa', borderRadius: 6, border: '1px solid #eee' }}>
+                            <div className="pricing-box" style={{ marginTop: 6, background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
                               <div style={{ fontWeight: 600, marginBottom: 4 }}>Pricing</div>
                               <div>Base: ₹{it.price_breakdown.base}</div>
                               {Array.isArray(it.price_breakdown.extras) && it.price_breakdown.extras.map((ex, i) => {
@@ -142,7 +156,7 @@ const Account = () => {
                             if (!raw) return null;
                             const parts = String(raw).split(' | ').map(s => s.trim()).filter(Boolean);
                             return (
-                              <div className="item-instructions" style={{ marginTop: 6, fontSize: '0.9rem', color: '#333' }}>
+                              <div className="item-instructions details-box" style={{ marginTop: 6, fontSize: '0.9rem', color: '#333', background: '#f9fafb', borderRadius: 8, padding: '8px 12px' }}>
                                 <strong>Details:</strong>
                                 <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
                                   {parts.map((p, i) => (
@@ -154,31 +168,35 @@ const Account = () => {
                           })()}
                           {(() => {
                             const val = it.custom_photo_url;
-                            const isHttp = (s) => typeof s === 'string' && /^https?:\/\//i.test(s);
                             if (!val) return null;
-                            if (isHttp(val)) {
+                            let directImgs = [];
+                            let folderKey = '';
+                            if (!isHttp(val)) {
+                              folderKey = `${ord.order_number}:${idx}`;
+                            } else if (isCloudinaryFolderUrl(val)) {
+                              folderKey = `${ord.order_number}:${idx}`;
+                            } else {
+                              directImgs = [val];
+                            }
+                            const imgsFromFolder = folderKey ? (imagesMap[folderKey] || []) : [];
+                            const allImgs = [...directImgs, ...imgsFromFolder];
+                            if (allImgs.length === 0) return null;
+                            if (allImgs.length === 1) {
+                              const first = allImgs[0];
                               return (
                                 <img
-                                  src={val}
+                                  src={first}
                                   alt="custom"
                                   style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, marginLeft: 8, cursor: 'pointer', border: '1px solid #eee' }}
-                                  onClick={() => setPreviewUrl(val)}
+                                  onClick={() => setPreviewUrl(first)}
                                 />
                               );
                             }
-                            const key = `${ord.order_number}:${idx}`;
-                            const urls = imagesMap[key] || [];
-                            if (urls.length === 0) return null;
+                            // multiple
                             return (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 6, marginLeft: 8 }}>
-                                {urls.map((u, i) => (
-                                  <img
-                                    key={i}
-                                    src={u}
-                                    alt={`custom ${i+1}`}
-                                    style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee' }}
-                                    onClick={() => setPreviewUrl(u)}
-                                  />
+                              <div className="images-grid" style={{ marginLeft: 8 }}>
+                                {allImgs.map((u, i) => (
+                                  <img key={i} src={u} alt={`custom ${i+1}`} onClick={() => setPreviewUrl(u)} />
                                 ))}
                               </div>
                             );

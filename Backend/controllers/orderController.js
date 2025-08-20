@@ -1,24 +1,11 @@
 const { Cart, Order, OrderItem, Product, Payment, User } = require('../models');
 const { sequelize } = require('../config/db');
-const { cloudinary } = require('../config/cloudinary');
 const { Op } = require('sequelize');
 
 // Helpers
 const slugifySafe = (val, fallback = '') => {
   const str = (val == null ? fallback : String(val)).toLowerCase();
   return str.replace(/[^a-z0-9-_]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
-};
-const moveFolderAssets = async (fromFolder, toFolder) => {
-  const hasCloudinary = Boolean(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
-  if (!hasCloudinary) return;
-  try {
-    const result = await cloudinary.api.resources({ type:'upload', prefix:`${fromFolder}/`, max_results:200 });
-    const resources = result.resources||[];
-    await Promise.all(resources.map(async (r)=>{
-      const base = r.public_id.split('/').pop();
-      await cloudinary.uploader.rename(r.public_id, `${toFolder}/${base}`, { overwrite:true });
-    }));
-  } catch(err){ console.error('[Cloudinary] move error', err?.message||err); }
 };
 const generateOrderNumber = () => {
   const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
@@ -58,21 +45,20 @@ exports.createOrder = async (req,res)=>{
     const cart_number = cartRows[0].cart_number;
     await Order.create({ order_number, cart_number, user_email:email, customer_name, customer_email:email, customer_phone, shipping_address, total_amount, order_status:'confirmed', payment_id, coupon_code:coupon_code||null, discount_amount:discount }, { transaction:t });
 
-    // order_items rows & Cloudinary folder moves
-    const userSlug = slugifySafe(email);
-    for(const row of cartRows){
-      await OrderItem.create({ order_number, product_name:row.product_name, quantity:row.quantity, unit_price:row.unit_price, total_price:Number(row.unit_price)*Number(row.quantity), custom_photo_url:row.custom_photo_url, datewith_instructions:row.datewith_instructions }, { transaction:t });
-      // folder move
-      if(row.custom_photo_url && row.custom_photo_url.includes('/pending/')){
-        const fromFolder = row.custom_photo_url.replace(/^https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//,'').replace(/\/[^/]*$/,'');
-        const productSlug = slugifySafe(row.product_name);
-        const toFolder = `currency-gift/orders/${order_number}/${productSlug}`;
-        await moveFolderAssets(fromFolder, toFolder);
-        const newFolderUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/${toFolder}/`;
-        row.custom_photo_url = newFolderUrl;
-      }
+    // order_items rows
+    for (const row of cartRows) {
+      await OrderItem.create({
+        order_number,
+        product_name: row.product_name,
+        quantity: row.quantity,
+        unit_price: row.unit_price,
+        total_price: Number(row.unit_price) * Number(row.quantity),
+        custom_photo_url: row.custom_photo_url,
+        datewith_instructions: row.datewith_instructions
+      }, { transaction: t });
+
       row.is_checked_out = true;
-      await row.save({ transaction:t });
+      await row.save({ transaction: t });
     }
 
     await t.commit();
