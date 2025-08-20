@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import './Cart.css';
 
 const Cart = () => {
@@ -9,6 +10,35 @@ const Cart = () => {
   const maxDeliveryDays = Math.max(0, ...cartItems.map(i => (i.w_days ?? 5)));
   const { isLoggedIn } = useAuth();
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [imagesMap, setImagesMap] = useState({}); // key: item.id -> [urls]
+
+  // Helper to detect direct http(s)
+  const isHttp = (s) => typeof s === 'string' && /^https?:\/\//i.test(s);
+
+  // Fetch images for folder-based uploads whenever cartItems change
+  useEffect(() => {
+    const fetchImages = async () => {
+      const tasks = [];
+      cartItems.forEach((it) => {
+        const val = it.custom_photo_url;
+        if (val && !isHttp(val)) {
+          tasks.push(
+            api.get('/upload/list', { params: { folder: val } })
+              .then((resp) => ({ key: it.id, urls: (resp.data?.images || []).map((x) => x.imageUrl).filter(Boolean) }))
+              .catch(() => ({ key: it.id, urls: [] }))
+          );
+        }
+      });
+      if (tasks.length === 0) return;
+      const results = await Promise.all(tasks);
+      setImagesMap((prev) => {
+        const next = { ...prev };
+        results.forEach(({ key, urls }) => { next[key] = urls; });
+        return next;
+      });
+    };
+    fetchImages();
+  }, [cartItems]);
 
   if (cartItems.length === 0) {
     return (
@@ -78,130 +108,49 @@ const Cart = () => {
                       if (!hasAnyText && imageNames.length === 0 && imgs.length === 0) return null;
 
                       const rawInstr = item.datewith_instructions || '';
-                      const urlVal = item.custom_photo_url;
-                      const isHttp = (s) => typeof s === 'string' && /^https?:\/\//i.test(s);
+                      const folderOrUrl = item.custom_photo_url;
+                      const parts = rawInstr ? rawInstr.split(' | ').map(p => p.trim()).filter(Boolean) : [];
 
-                      if (rawInstr) {
-                        const parts = rawInstr.split(' | ').map((p) => p.trim()).filter(Boolean);
-                        return (
-                          <div style={{ marginTop: 6, fontSize: '0.9rem', color: '#333' }}>
-                            <strong>Details:</strong>
-                            <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                              {parts.map((p, i) => (
-                                <li key={i} style={{ listStyle: 'disc' }}>{p}</li>
-                              ))}
-                            </ul>
-                            {urlVal && isHttp(urlVal) && (
-                              <img src={urlVal} alt="custom" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, marginTop: 6, border: '1px solid #eee' }} />
-                            )}
-                          </div>
-                        );
-                      }
+                      const folderImgs = imagesMap[item.id] || [];
+                      const directImgs = (folderOrUrl && isHttp(folderOrUrl)) ? [folderOrUrl] : [];
+                      const allImgs = [...directImgs, ...folderImgs];
+
+                      const showPrice = item.customization?.priceBreakdown;
+
+                      if (parts.length === 0 && allImgs.length === 0 && !showPrice) return null;
 
                       return (
-                        <div className="item-customization" style={{marginTop:'6px', fontSize:'0.9rem', color:'#333'}}>
-                          {isResin ? (
+                        <div style={{ marginTop: 6, fontSize: '0.9rem', color: '#333' }}>
+                          {parts.length > 0 && (
                             <>
-                              {isSmallResin ? (
-                                <>
-                                  <div><strong>Name:</strong> {c.resinName1 || c.names || 'Not given'}</div>
-                                  <div><strong>Event:</strong> {c.resinEvent || 'Not given'}</div>
-                                  <div><strong>Event Date:</strong> {c.resinEventDate || c.specialData || 'Not given'}</div>
-                                </>
-                              ) : (
-                                <>
-                                  <div><strong>Person 1:</strong> {[c.resinName1 || 'Not given', c.resinDate1 || 'Not given'].join(' - ')}</div>
-                                  <div><strong>Person 2:</strong> {[c.resinName2 || 'Not given', c.resinDate2 || 'Not given'].join(' - ')}</div>
-                                  <div><strong>Event:</strong> {c.resinEvent || 'Not given'}</div>
-                                  <div><strong>Event Date:</strong> {c.resinEventDate || 'Not given'}</div>
-                                </>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              {isFrame ? (
-                                <>
-                                  {/* Frame names/dates if provided */}
-                                  {(c.frameName1 || c.frameDate1) && (
-                                    <div><strong>Person 1:</strong> {[c.frameName1 || 'Not given', c.frameDate1 || 'Not given'].join(' - ')}</div>
-                                  )}
-                                  {(c.frameName2 || c.frameDate2) && (
-                                    <div><strong>Person 2:</strong> {[c.frameName2 || 'Not given', c.frameDate2 || 'Not given'].join(' - ')}</div>
-                                  )}
-                                  {/* Frame event and date */}
-                                  {(c.event || c.frameEvent || c.customEvent) && (
-                                    <div><strong>Event:</strong> {c.event || c.frameEvent || c.customEvent}</div>
-                                  )}
-                                  {(c.frameEventDate || c.specialData) && (
-                                    <div><strong>Event Date:</strong> {c.frameEventDate || c.specialData}</div>
-                                  )}
-                                  {/* Custom frames: list Names and Notes with details */}
-                                  {Array.isArray(c.customNames) && c.customNames.length > 0 && (
-                                    <div style={{ marginTop: '4px' }}>
-                                      <strong>Names:</strong>
-                                      <div style={{ marginTop: '2px' }}>
-                                        {c.customNames.map((nm, i) => {
-                                          const letters = Math.min(50, String(nm || '').replace(/\s+/g, '').length);
-                                          return (
-                                            <div key={`cname-${i}`}>Name {i + 1}: {nm || 'Not given'}{letters ? ` — ${letters} letters` : ''}</div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {Array.isArray(c.customNotes) && c.customNotes.length > 0 && (
-                                    <div style={{ marginTop: '4px' }}>
-                                      <strong>Notes:</strong>
-                                      <div style={{ marginTop: '2px' }}>
-                                        {c.customNotes.map((n, i) => (
-                                          <div key={`cnote-${i}`}>
-                                            Note {i + 1}: Date: {n?.date || 'Not given'} • Currency: {n?.currency ? `₹${n.currency}` : 'Not given'}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {/* Keep concise description (may include variant/size) */}
-                                  {c.description && <div><strong>Description:</strong> {c.description}</div>}
-                                </>
-                              ) : (
-                                <>
-                                  {c.specialData && <div><strong>Special Date:</strong> {c.specialData}</div>}
-                                  {c.description && <div><strong>Description:</strong> {c.description}</div>}
-                                </>
-                              )}
+                              <strong>Details:</strong>
+                              <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                                {parts.map((p, i) => (
+                                  <li key={i} style={{ listStyle: 'disc' }}>{p}</li>
+                                ))}
+                              </ul>
                             </>
                           )}
 
-                          {imageNames.length > 0 && (
-                            <div style={{marginTop:'4px'}}><strong>Images:</strong> {imageNames.join(', ')}</div>
-                          )}
-                          {imgs.length > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: '6px', marginTop: '6px' }}>
-                              {imgs.map((src, idx) => (
-                                <img
-                                  key={idx}
-                                  src={src}
-                                  alt={`Img ${idx+1}`}
-                                  style={{ width: '100%', height: '50px', objectFit: 'cover', borderRadius: '4px', border:'1px solid #eee', cursor: 'pointer' }}
-                                  onClick={() => setPreviewUrl(src)}
-                                />
+                          {allImgs.length > 0 && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: 6, marginTop: 6 }}>
+                              {allImgs.map((src, idx) => (
+                                <img key={idx} src={src} alt={`img-${idx}`} style={{ width: '100%', height: 50, objectFit: 'cover', borderRadius: 4, border: '1px solid #eee', cursor: 'pointer' }} onClick={() => setPreviewUrl(src)} />
                               ))}
                             </div>
                           )}
-                          {c.priceBreakdown && (
-                            <div className="price-breakdown" style={{marginTop:'8px', padding:'8px', background:'#f8f9fa', borderRadius:'6px', border:'1px solid #eee'}}>
+
+                          {showPrice && (
+                            <div style={{marginTop:'8px', padding:'8px', background:'#f8f9fa', borderRadius:'6px', border:'1px solid #eee'}}>
                               <div style={{fontWeight:600, marginBottom:4}}>Pricing</div>
-                              <div>Base: ₹{c.priceBreakdown.base}</div>
-                              {Array.isArray(c.priceBreakdown.extras) && c.priceBreakdown.extras.map((ex, i) => {
+                              <div>Base: ₹{showPrice.base}</div>
+                              {Array.isArray(showPrice.extras) && showPrice.extras.map((ex, i) => {
                                 const hasLetters = typeof ex.letters === 'number' && !isNaN(ex.letters);
                                 return (
-                                  <div key={i}>
-                                    {ex.label}{hasLetters ? `: ${ex.letters} letters` : ''} — ₹{ex.cost}
-                                  </div>
+                                  <div key={i}>{ex.label}{hasLetters ? `: ${ex.letters} letters` : ''} — ₹{ex.cost}</div>
                                 );
                               })}
-                              <div>Total Extras: ₹{c.priceBreakdown.totalExtras}</div>
+                              <div>Total Extras: ₹{showPrice.totalExtras}</div>
                               <div style={{marginTop:4}}><strong>Final Price:</strong> ₹{item.price}</div>
                             </div>
                           )}

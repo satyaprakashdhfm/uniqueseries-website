@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderAPI } from '../services/api';
+import api from '../services/api';
 import './Payment.css';
 
 const Payment = () => {
@@ -45,6 +46,35 @@ const Payment = () => {
   const percentDiscount = appliedCoupon?.type === 'percent' ? Math.round((appliedCoupon.value / 100) * subtotal) : 0;
   const discount = Math.max(0, percentDiscount);
   const finalTotal = Math.max(0, (subtotal + shippingDisplay) - discount);
+
+  const [imagesMap, setImagesMap] = useState({}); // key: item.id -> urls
+
+  const isHttp = (s) => typeof s === 'string' && /^https?:\/\//i.test(s);
+
+  // Fetch folder images for cart items
+  useEffect(() => {
+    const fetchImgs = async () => {
+      const tasks = [];
+      cartItems.forEach((it) => {
+        const val = it.custom_photo_url;
+        if (val && !isHttp(val)) {
+          tasks.push(
+            api.get('/upload/list', { params: { folder: val } })
+              .then((resp) => ({ key: it.id, urls: (resp.data?.images || []).map((x) => x.imageUrl).filter(Boolean) }))
+              .catch(() => ({ key: it.id, urls: [] }))
+          );
+        }
+      });
+      if (tasks.length === 0) return;
+      const res = await Promise.all(tasks);
+      setImagesMap((prev) => {
+        const next = { ...prev };
+        res.forEach(({ key, urls }) => { next[key] = urls; });
+        return next;
+      });
+    };
+    fetchImgs();
+  }, [cartItems]);
 
   const handleChange = (e) => {
     setFormData({
@@ -243,7 +273,7 @@ const Payment = () => {
               {/* Coupon */}
               <div className="form-group" style={{ marginTop: 8 }}>
                 <label htmlFor="coupon" style={{ fontWeight: 600 }}>Coupon Code</label>
-                <div style={{ display:'flex', gap:8 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     id="coupon"
                     type="text"
@@ -251,7 +281,7 @@ const Payment = () => {
                     onChange={(e) => { setCouponCode(e.target.value); setCouponError(''); }}
                     placeholder="e.g., yash10, satya11, jaya10 or FREESHIP"
                     className="form-input"
-                    style={{ flex:1 }}
+                    style={{ flex: 1 }}
                     aria-invalid={Boolean(couponError)}
                     aria-describedby={couponError ? 'coupon-error' : undefined}
                   />
@@ -260,7 +290,7 @@ const Payment = () => {
                   </button>
                 </div>
                 {appliedCoupon && (
-                  <div style={{ marginTop:4, fontSize:'0.9rem', color:'#2e7d32' }}>
+                  <div style={{ marginTop: 4, fontSize: '0.9rem', color: '#2e7d32' }}>
                     Applied: <strong>{appliedCoupon.code}</strong>{appliedCoupon.type === 'percent' ? ` — ${appliedCoupon.value}% off` : ' — Free Shipping'}
                   </div>
                 )}
@@ -276,116 +306,47 @@ const Payment = () => {
                       <h4>{item.name}</h4>
                       <p>{item.category}</p>
                       {(() => {
-                        const c = item.customization || {};
-                        const imgs = Array.isArray(c.imageUrls) ? c.imageUrls : (c.imageUrl ? [c.imageUrl] : []);
-                        const imageNames = (Array.isArray(c.imageNames) && c.imageNames.length > 0)
-                          ? c.imageNames
-                          : imgs.map((u) => {
-                              try {
-                                const last = (u || '').split('/').pop() || '';
-                                return decodeURIComponent((last.split('?')[0]) || last);
-                              } catch { return u; }
-                            }).filter(Boolean);
+                        const rawInstr = item.datewith_instructions || '';
+                        const folderOrUrl = item.custom_photo_url;
+                        const parts = rawInstr ? rawInstr.split(' | ').map(p => p.trim()).filter(Boolean) : [];
 
-                        const cat = (item.category || item.type || '').toLowerCase();
-                        const isResin = cat.includes('resin');
-                        const isFrame = cat.includes('frame') && !cat.includes('resin');
-                        const isSmallResin = isResin && (item.name || '').toLowerCase().includes('small');
+                        const folderImgs = imagesMap[item.id] || [];
+                        const directImgs = (folderOrUrl && isHttp(folderOrUrl)) ? [folderOrUrl] : [];
+                        const allImgs = [...directImgs, ...folderImgs];
 
-                        const hasAnyText = isResin
-                          ? (isSmallResin
-                              ? ((c.resinName1 || c.names) || (c.resinEventDate || c.specialData))
-                              : ((c.resinName1 || c.resinDate1) || (c.resinName2 || c.resinDate2)))
-                          : (isFrame
-                              ? (c.frameName1 || c.frameDate1 || c.frameName2 || c.frameDate2 || c.frameEvent || c.event || c.customEvent || c.frameEventDate || c.specialData || c.description)
-                              : (c.specialData || c.description));
+                        const price = item.customization?.priceBreakdown;
 
-                        if (!hasAnyText && imageNames.length === 0 && imgs.length === 0) return null;
+                        if (parts.length === 0 && allImgs.length === 0 && !price) return null;
 
                         return (
-                          <div className="item-customization" style={{marginTop:'6px', fontSize:'0.9rem', color:'#333'}}>
-                            {isResin ? (
+                          <div style={{ marginTop: '6px', fontSize: '0.9rem', color: '#333' }}>
+                            {parts.length > 0 && (
                               <>
-                                {isSmallResin ? (
-                                  <>
-                                    <div><strong>Name:</strong> {c.resinName1 || c.names || 'Not given'}</div>
-                                    <div><strong>Event:</strong> {c.resinEvent || 'Not given'}</div>
-                                    <div><strong>Event Date:</strong> {c.resinEventDate || c.specialData || 'Not given'}</div>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div><strong>Person 1:</strong> {[c.resinName1 || 'Not given', c.resinDate1 || 'Not given'].join(' - ')}</div>
-                                    <div><strong>Person 2:</strong> {[c.resinName2 || 'Not given', c.resinDate2 || 'Not given'].join(' - ')}</div>
-                                    <div><strong>Event:</strong> {c.resinEvent || 'Not given'}</div>
-                                    <div><strong>Event Date:</strong> {c.resinEventDate || 'Not given'}</div>
-                                  </>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                {isFrame ? (
-                                  <>
-                                    {(c.frameName1 || c.frameDate1) && (
-                                      <div><strong>Person 1:</strong> {[c.frameName1 || 'Not given', c.frameDate1 || 'Not given'].join(' - ')}</div>
-                                    )}
-                                    {(c.frameName2 || c.frameDate2) && (
-                                      <div><strong>Person 2:</strong> {[c.frameName2 || 'Not given', c.frameDate2 || 'Not given'].join(' - ')}</div>
-                                    )}
-                                    {(c.event || c.frameEvent || c.customEvent) && (
-                                      <div><strong>Event:</strong> {c.event || c.frameEvent || c.customEvent}</div>
-                                    )}
-                                    {(c.frameEventDate || c.specialData) && (
-                                      <div><strong>Event Date:</strong> {c.frameEventDate || c.specialData}</div>
-                                    )}
-                                    {/* Custom frame arrays */}
-                                    {Array.isArray(c.customNames) && c.customNames.filter(Boolean).length > 0 && (
-                                      <div><strong>Names:</strong> {c.customNames.filter(Boolean).join(', ')}</div>
-                                    )}
-                                    {Array.isArray(c.customNotes) && c.customNotes.length > 0 && (
-                                      <div>
-                                        <strong>Notes:</strong>{' '}
-                                        {c.customNotes.map((n, i) => {
-                                          const d = (n && n.date) ? n.date : '—';
-                                          const cur = (n && (n.currency || n.denomination)) ? (n.currency || n.denomination) : '—';
-                                          return `${d}-${cur}`;
-                                        }).join(', ')}
-                                      </div>
-                                    )}
-                                    {c.frameSetType && <div><strong>Set:</strong> {c.frameSetType}</div>}
-                                    {c.description && <div><strong>Description:</strong> {c.description}</div>}
-                                  </>
-                                ) : (
-                                  <>
-                                    {c.specialData && <div><strong>Special Date:</strong> {c.specialData}</div>}
-                                    {c.description && <div><strong>Description:</strong> {c.description}</div>}
-                                  </>
-                                )}
+                                <strong>Details:</strong>
+                                <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                                  {parts.map((p, i) => (<li key={i} style={{ listStyle: 'disc' }}>{p}</li>))}
+                                </ul>
                               </>
                             )}
 
-                            {imageNames.length > 0 && (
-                              <div style={{marginTop:'4px'}}><strong>Images:</strong> {imageNames.join(', ')}</div>
-                            )}
-                            {imgs.length > 0 && (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: '6px', marginTop: '6px' }}>
-                                {imgs.map((src, idx) => (
-                                  <img key={idx} src={src} alt={`Img ${idx+1}`} style={{ width: '100%', height: '50px', objectFit: 'cover', borderRadius: '4px', border:'1px solid #eee' }} />
+                            {allImgs.length > 0 && (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px,1fr))', gap: 6, marginTop: 6 }}>
+                                {allImgs.map((src, idx) => (
+                                  <img key={idx} src={src} alt={`img-${idx}`} style={{ width: '100%', height: 50, objectFit: 'cover', borderRadius: 4, border: '1px solid #eee' }} />
                                 ))}
                               </div>
                             )}
-                            {c.priceBreakdown && (
-                              <div className="price-breakdown" style={{marginTop:'8px', padding:'8px', background:'#f8f9fa', borderRadius:'6px', border:'1px solid #eee'}}>
-                                <div style={{fontWeight:600, marginBottom:4}}>Pricing</div>
-                                <div>Base: ₹{c.priceBreakdown.base}</div>
-                                {Array.isArray(c.priceBreakdown.extras) && c.priceBreakdown.extras.map((ex, i) => (
-                                  <div key={i}>
-                                    {ex.label}
-                                    {ex.letters !== undefined && ex.letters !== null && ex.letters !== '' ? ` (${ex.letters} letters)` : ''}
-                                    {`: ₹${ex.cost}`}
-                                  </div>
-                                ))}
-                                <div>Total Extras: ₹{c.priceBreakdown.totalExtras}</div>
-                                <div style={{marginTop:4}}><strong>Final Price:</strong> ₹{item.price}</div>
+
+                            {price && (
+                              <div style={{ marginTop: '8px', padding: '8px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #eee' }}>
+                                <div style={{ fontWeight: 600, marginBottom: 4 }}>Pricing</div>
+                                <div>Base: ₹{price.base}</div>
+                                {Array.isArray(price.extras) && price.extras.map((ex, i) => {
+                                  const hasL = typeof ex.letters === 'number' && !isNaN(ex.letters);
+                                  return <div key={i}>{ex.label}{hasL ? `: ${ex.letters} letters` : ''} — ₹{ex.cost}</div>;
+                                })}
+                                <div>Total Extras: ₹{price.totalExtras}</div>
+                                <div style={{ marginTop: 4 }}><strong>Final Price:</strong> ₹{item.price}</div>
                               </div>
                             )}
                           </div>
