@@ -18,16 +18,30 @@ connectDB();
 // Initialize express
 const app = express();
 
+// Trust proxy (needed on Railway/behind proxies for correct IP/proto)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors(corsOptions));
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// Static folder for uploads
+// Static folder for uploads (note: ephemeral on Railway)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Health check endpoints
+app.get('/health', (req, res) => res.status(200).send('ok'));
+app.get('/ready', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    return res.status(200).send('ready');
+  } catch (e) {
+    return res.status(500).send('db_unavailable');
+  }
+});
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
