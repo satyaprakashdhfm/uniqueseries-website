@@ -8,6 +8,7 @@ const Wishlist = require('./Wishlist');
 const AdminUser = require('./AdminUser');
 const ContactMessage = require('./ContactMessage');
 const OrderItem = require('./OrderItem');
+const Coupon = require('./Coupon');
 
 // Note: Removed User-Order association on user_email since the column does not exist in DB.
 // This avoids Sequelize adding a non-existent 'user_email' attribute to RETURNING clauses.
@@ -73,5 +74,6 @@ module.exports = {
   Wishlist,
   AdminUser,
   ContactMessage,
-  OrderItem
+  OrderItem,
+  Coupon
 };

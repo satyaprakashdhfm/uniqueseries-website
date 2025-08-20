@@ -95,13 +95,16 @@ const Payment = () => {
     // Simple client-side validation rules (adjust as needed)
     const now = new Date();
     const expiry = new Date('2025-08-30T23:59:59');
-    const validPercentCodes = ['yash10', 'satya11', 'jaya10'];
+    const validPercentCodes = ['yash10', 'satya11', 'jaya10', 'festive20'];
 
     if (codeUpper === 'SAVE10') {
       setAppliedCoupon({ code: codeUpper, type: 'percent', value: 10 });
       setCouponError('');
     } else if (codeUpper === 'FREESHIP') {
       setAppliedCoupon({ code: codeUpper, type: 'freeship', value: 0 });
+      setCouponError('');
+    } else if (codeUpper === 'FESTIVE20') {
+      setAppliedCoupon({ code: codeUpper, type: 'percent', value: 20 });
       setCouponError('');
     } else if (validPercentCodes.includes(codeLower) && now <= expiry) {
       setAppliedCoupon({ code: codeUpper, type: 'percent', value: 10 });
@@ -279,7 +282,7 @@ const Payment = () => {
                     type="text"
                     value={couponCode}
                     onChange={(e) => { setCouponCode(e.target.value); setCouponError(''); }}
-                    placeholder="e.g., yash10, satya11, jaya10 or FREESHIP"
+                    placeholder=""
                     className="form-input"
                     style={{ flex: 1 }}
                     aria-invalid={Boolean(couponError)}

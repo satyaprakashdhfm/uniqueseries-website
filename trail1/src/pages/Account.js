@@ -137,20 +137,6 @@ const Account = () => {
                           <span className="item-qty">Qty: {it.quantity}</span>
                           <span className="item-unit">Unit: ₹{Number(it.unit_price || 0).toFixed(2)}</span>
                           <span className="item-subtotal">Subtotal: ₹{(Number(it.unit_price || 0) * Number(it.quantity || 0)).toFixed(2)}</span>
-                          {it.price_breakdown && (
-                            <div className="pricing-box" style={{ marginTop: 6, background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
-                              <div style={{ fontWeight: 600, marginBottom: 4 }}>Pricing</div>
-                              <div>Base: ₹{it.price_breakdown.base}</div>
-                              {Array.isArray(it.price_breakdown.extras) && it.price_breakdown.extras.map((ex, i) => {
-                                const hasL = typeof ex.letters === 'number' && !isNaN(ex.letters);
-                                return (
-                                  <div key={i}>{ex.label}{hasL ? `: ${ex.letters} letters` : ''} — ₹{ex.cost}</div>
-                                );
-                              })}
-                              <div>Total Extras: ₹{it.price_breakdown.totalExtras}</div>
-                              <div style={{ marginTop: 4 }}><strong>Final Price:</strong> ₹{Number(it.unit_price || 0).toFixed(2)}</div>
-                            </div>
-                          )}
                           {(() => {
                             const raw = it.datewith_instructions || '';
                             if (!raw) return null;
@@ -203,6 +189,50 @@ const Account = () => {
                           })()}
                         </div>
                       ))}
+
+                      {/* Price Summary: all pricing in one place (Base, Extras, Coupon, Shipping, Total) */}
+                      {(() => {
+                        const items = Array.isArray(ord.items) ? ord.items : [];
+                        const itemsSubtotal = items.reduce((sum, it) => sum + (Number(it.unit_price || 0) * Number(it.quantity || 0)), 0);
+                        const extrasTotal = items.reduce((sum, it) => sum + (Number(it.price_breakdown?.totalExtras || 0) * Number(it.quantity || 0)), 0);
+                        const baseSubtotal = Math.max(0, itemsSubtotal - extrasTotal);
+                        const discount = Number(ord.discount_amount || 0);
+                        const total = Number(ord.total_amount || 0);
+                        const shippingRaw = total - (itemsSubtotal - discount);
+                        const shipping = shippingRaw > 0 ? Number(shippingRaw.toFixed(2)) : 0;
+                        return (
+                          <div className="order-price-breakup" style={{ marginTop: 12, background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
+                            <div style={{ fontWeight: 600, marginBottom: 6 }}>Price Summary</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>Items (Base)</span>
+                              <span>₹{baseSubtotal.toFixed(2)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>Extras</span>
+                              <span>₹{extrasTotal.toFixed(2)}</span>
+                            </div>
+                            {discount > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0b6b0b' }}>
+                                <span>Coupon Applied{ord.coupon_code ? ` (${ord.coupon_code})` : ''}</span>
+                                <span>-₹{discount.toFixed(2)}</span>
+                              </div>
+                            )}
+                            {shipping > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Shipping</span>
+                                <span>₹{shipping.toFixed(2)}</span>
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontWeight: 600 }}>
+                              <span>Total Paid</span>
+                              <span>₹{total.toFixed(2)}</span>
+                            </div>
+                            {discount > 0 && (
+                              <div style={{ marginTop: 4, fontSize: 12, color: '#0b6b0b' }}>You saved ₹{discount.toFixed(2)}{ord.coupon_code ? ` with ${ord.coupon_code}` : ''}</div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

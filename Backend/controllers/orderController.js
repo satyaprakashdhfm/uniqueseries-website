@@ -1,4 +1,4 @@
-const { Cart, Order, OrderItem, Product, Payment, User } = require('../models');
+const { Cart, Order, OrderItem, Product, Payment, User, Coupon } = require('../models');
 const { sequelize } = require('../config/db');
 const { Op } = require('sequelize');
 
@@ -27,10 +27,44 @@ exports.createOrder = async (req,res)=>{
     if(cartRows.length===0){ await t.rollback(); return res.status(400).json({ message:'Cart empty' }); }
 
     // compute totals
-    let subtotal=0;
-    for(const r of cartRows){ subtotal += Number(r.unit_price)*Number(r.quantity); }
-    let discount=0;
-    // TODO: apply coupon logic if needed (omitted for brevity)
+    let subtotal = 0;
+    for (const r of cartRows) {
+      subtotal += Number(r.unit_price) * Number(r.quantity);
+    }
+
+    // ---------------- Coupon validation ----------------
+    let discount = 0;
+    let couponRow = null;
+    if (coupon_code) {
+      const now = new Date();
+      const code = String(coupon_code).toUpperCase();
+      couponRow = await Coupon.findOne({
+        where: {
+          code,
+          is_active: true,
+          expiry_date: { [Op.gte]: now },
+          [Op.or]: [
+            { usage_limit: null },
+            { times_used: { [Op.lt]: sequelize.col('usage_limit') } }
+          ]
+        },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (couponRow) {
+        if (couponRow.type === 'percentage') {
+          discount = Math.round(subtotal * Number(couponRow.discount_value) / 100);
+        } else {
+          discount = Math.min(subtotal, Number(couponRow.discount_value));
+        }
+
+        // increment times_used
+        couponRow.times_used += 1;
+        await couponRow.save({ transaction: t });
+      }
+    }
+
     const shipping_fee = subtotal - discount > 999 ? 0 : 68;
     const total_amount = Math.round((subtotal-discount+shipping_fee)*100)/100;
 
