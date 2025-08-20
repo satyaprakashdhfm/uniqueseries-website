@@ -77,6 +77,27 @@ const Cart = () => {
 
                       if (!hasAnyText && imageNames.length === 0 && imgs.length === 0) return null;
 
+                      const rawInstr = item.datewith_instructions || '';
+                      const urlVal = item.custom_photo_url;
+                      const isHttp = (s) => typeof s === 'string' && /^https?:\/\//i.test(s);
+
+                      if (rawInstr) {
+                        const parts = rawInstr.split(' | ').map((p) => p.trim()).filter(Boolean);
+                        return (
+                          <div style={{ marginTop: 6, fontSize: '0.9rem', color: '#333' }}>
+                            <strong>Details:</strong>
+                            <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                              {parts.map((p, i) => (
+                                <li key={i} style={{ listStyle: 'disc' }}>{p}</li>
+                              ))}
+                            </ul>
+                            {urlVal && isHttp(urlVal) && (
+                              <img src={urlVal} alt="custom" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, marginTop: 6, border: '1px solid #eee' }} />
+                            )}
+                          </div>
+                        );
+                      }
+
                       return (
                         <div className="item-customization" style={{marginTop:'6px', fontSize:'0.9rem', color:'#333'}}>
                           {isResin ? (

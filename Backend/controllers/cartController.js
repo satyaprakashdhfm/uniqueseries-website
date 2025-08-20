@@ -10,10 +10,75 @@ const generateCartNumber = () => {
   return `CART_${dateStr}_${rand}`;
 };
 
-const formatDateWithInstructions = (productName, details) => {
-  if (!details) return null;
-  const safeDetails = Array.isArray(details) ? details.join('|') : String(details);
-  return `${productName}|${safeDetails}`;
+// Format detailed customization info; omit empty values
+const formatDateWithInstructions = (product, customization = {}) => {
+  if (!customization || Object.keys(customization).length === 0) return null;
+
+  const type = (product?.type || '').toLowerCase();
+  const nameLower = (product?.name || '').toLowerCase();
+  const parts = [];
+
+  const pushIfExists = (label, value) => {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      parts.push(`${label}: ${value}`);
+    }
+  };
+
+  // Resin Frames
+  if (type === 'resin_frame') {
+    const isSmall = nameLower.includes('small');
+    const sizeText = isSmall ? 'Small Resin 8x15 inches' : 'Large Resin 13x19 inches';
+    parts.push(sizeText);
+
+    if (isSmall) {
+      pushIfExists('Name', customization.resinName1 || customization.names);
+      pushIfExists('Event', customization.resinEvent || customization.event);
+      pushIfExists('Event Date', customization.resinEventDate || customization.specialData);
+    } else {
+      const p1Label = [customization.resinName1, customization.resinDate1].filter(Boolean).join(' - ');
+      const p2Label = [customization.resinName2, customization.resinDate2].filter(Boolean).join(' - ');
+      if (p1Label) pushIfExists('Person 1', p1Label);
+      if (p2Label) pushIfExists('Person 2', p2Label);
+      pushIfExists('Event', customization.resinEvent || customization.event);
+      pushIfExists('Event Date', customization.resinEventDate);
+    }
+  }
+  // Photo Frames
+  else if (type === 'photo_frame') {
+    pushIfExists('Special Date', customization.specialData);
+    pushIfExists('Names', customization.names);
+
+    const p1 = [customization.frameName1, customization.frameDate1].filter(Boolean).join(' - ');
+    const p2 = [customization.frameName2, customization.frameDate2].filter(Boolean).join(' - ');
+    if (p1) pushIfExists('Person 1', p1);
+    if (p2) pushIfExists('Person 2', p2);
+
+    pushIfExists('Event', customization.event || customization.frameEvent || customization.customEvent);
+    pushIfExists('Event Date', customization.frameEventDate);
+
+    if (Array.isArray(customization.customNames) && customization.customNames.filter(Boolean).length > 0) {
+      pushIfExists('Names', customization.customNames.filter(Boolean).join(', '));
+    }
+    if (Array.isArray(customization.customNotes) && customization.customNotes.length > 0) {
+      const notesList = customization.customNotes
+        .map((n) => `${n?.date || '—'}-${n?.currency || n?.denomination || '—'}`)
+        .join(', ');
+      pushIfExists('Notes', notesList);
+    }
+    pushIfExists('Set', customization.frameSetType);
+    pushIfExists('Description', customization.description);
+  }
+  // Currency Notes
+  else if (type === 'currency_note') {
+    pushIfExists('Special Date', customization.specialData);
+    pushIfExists('Description', customization.description);
+  }
+  // Default / Fallback
+  else if (customization.description) {
+    pushIfExists('Description', customization.description);
+  }
+
+  return parts.length > 0 ? parts.join(' | ') : null;
 };
 
 // GET /api/cart
@@ -55,7 +120,7 @@ exports.addToCart = async (req, res) => {
     // Save only folder path (if provided) otherwise first image as fallback
     const custom_photo_url = customization.folder || customization.custom_photo_url || (Array.isArray(customization.imageUrls) ? customization.imageUrls[0] : null);
 
-    const datewith_instructions = formatDateWithInstructions(productName, customization?.details || customization?.datewith_instructions);
+    const datewith_instructions = formatDateWithInstructions(product, customization);
 
     // Upsert logic: same product + customization in same cart -> increment
     const existing = await Cart.findOne({
