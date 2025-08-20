@@ -81,43 +81,14 @@ const Cart = () => {
 
                     {/* Customization details */}
                     {(() => {
-                      const c = item.customization || {};
-                      const imgs = Array.isArray(c.imageUrls) ? c.imageUrls : (c.imageUrl ? [c.imageUrl] : []);
-                      const imageNames = (Array.isArray(c.imageNames) && c.imageNames.length > 0)
-                        ? c.imageNames
-                        : imgs.map((u) => {
-                            try {
-                              const last = (u || '').split('/').pop() || '';
-                              return decodeURIComponent((last.split('?')[0]) || last);
-                            } catch { return u; }
-                          }).filter(Boolean);
-
-                      const cat = (item.category || item.type || '').toLowerCase();
-                      const isResin = cat.includes('resin');
-                      const isFrame = cat.includes('frame') && !cat.includes('resin');
-                      const isSmallResin = isResin && (item.name || '').toLowerCase().includes('small');
-
-                      const hasAnyText = isResin
-                        ? (isSmallResin
-                            ? ((c.resinName1 || c.names) || (c.resinEventDate || c.specialData))
-                            : ((c.resinName1 || c.resinDate1) || (c.resinName2 || c.resinDate2)))
-                        : (isFrame
-                            ? (c.frameName1 || c.frameDate1 || c.frameName2 || c.frameDate2 || c.frameEvent || c.event || c.customEvent || c.frameEventDate || c.specialData || c.description)
-                            : (c.specialData || c.description));
-
-                      if (!hasAnyText && imageNames.length === 0 && imgs.length === 0) return null;
-
-                      const rawInstr = item.datewith_instructions || '';
-                      const folderOrUrl = item.custom_photo_url;
-                      const parts = rawInstr ? rawInstr.split(' | ').map(p => p.trim()).filter(Boolean) : [];
+                      const rawInstr   = item.datewith_instructions || '';
+                      const parts      = rawInstr ? rawInstr.split(' | ').map(p => p.trim()).filter(Boolean) : [];
 
                       const folderImgs = imagesMap[item.id] || [];
-                      const directImgs = (folderOrUrl && isHttp(folderOrUrl)) ? [folderOrUrl] : [];
-                      const allImgs = [...directImgs, ...folderImgs];
+                      const directImgs = item.custom_photo_url && isHttp(item.custom_photo_url) ? [item.custom_photo_url] : [];
+                      const allImgs    = [...directImgs, ...folderImgs];
 
-                      const showPrice = item.customization?.priceBreakdown;
-
-                      if (parts.length === 0 && allImgs.length === 0 && !showPrice) return null;
+                      const showPrice  = item.customization?.priceBreakdown;
 
                       return (
                         <div style={{ marginTop: 6, fontSize: '0.9rem', color: '#333' }}>
@@ -135,23 +106,33 @@ const Cart = () => {
                           {allImgs.length > 0 && (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: 6, marginTop: 6 }}>
                               {allImgs.map((src, idx) => (
-                                <img key={idx} src={src} alt={`img-${idx}`} style={{ width: '100%', height: 50, objectFit: 'cover', borderRadius: 4, border: '1px solid #eee', cursor: 'pointer' }} onClick={() => setPreviewUrl(src)} />
+                                <img
+                                  key={idx}
+                                  src={src}
+                                  alt={`img-${idx}`}
+                                  style={{ width: '100%', height: 50, objectFit: 'cover', borderRadius: 4, border: '1px solid #eee', cursor: 'pointer' }}
+                                  onClick={() => setPreviewUrl(src)}
+                                />
                               ))}
                             </div>
                           )}
 
                           {showPrice && (
-                            <div style={{marginTop:'8px', padding:'8px', background:'#f8f9fa', borderRadius:'6px', border:'1px solid #eee'}}>
-                              <div style={{fontWeight:600, marginBottom:4}}>Pricing</div>
+                            <div style={{ marginTop: 8, padding: 8, background: '#f8f9fa', borderRadius: 6, border: '1px solid #eee' }}>
+                              <div style={{ fontWeight: 600, marginBottom: 4 }}>Pricing</div>
                               <div>Base: ₹{showPrice.base}</div>
+
                               {Array.isArray(showPrice.extras) && showPrice.extras.map((ex, i) => {
                                 const hasLetters = typeof ex.letters === 'number' && !isNaN(ex.letters);
                                 return (
-                                  <div key={i}>{ex.label}{hasLetters ? `: ${ex.letters} letters` : ''} — ₹{ex.cost}</div>
+                                  <div key={i}>
+                                    {ex.label}{hasLetters ? `: ${ex.letters} letters` : ''} — ₹{ex.cost}
+                                  </div>
                                 );
                               })}
+
                               <div>Total Extras: ₹{showPrice.totalExtras}</div>
-                              <div style={{marginTop:4}}><strong>Final Price:</strong> ₹{item.price}</div>
+                              <div style={{ marginTop: 4 }}><strong>Final Price:</strong> ₹{item.price}</div>
                             </div>
                           )}
                         </div>
