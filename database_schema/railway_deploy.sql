@@ -163,6 +163,7 @@ CREATE TABLE public.order_items (
     custom_photo_url VARCHAR(500),
     datewith_instructions TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     -- Foreign key constraints for Railway
     CONSTRAINT order_items_order_number_fkey FOREIGN KEY (order_number) 
@@ -309,6 +310,10 @@ CREATE TRIGGER update_contact_messages_updated_at
     BEFORE UPDATE ON public.contact_messages 
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+CREATE TRIGGER update_order_items_updated_at 
+    BEFORE UPDATE ON public.order_items 
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
 -- Railway PostgreSQL Utility Functions
 CREATE OR REPLACE FUNCTION public.generate_order_number()
 RETURNS TEXT AS $$
@@ -380,12 +385,12 @@ INSERT INTO public.coupons (code, type, discount_value, expiry_date, usage_limit
 -- 5. Deploy your app to Railway
 --
 -- Features included:
--- ✅ All tables with Railway PostgreSQL optimizations
--- ✅ Foreign key relationships
--- ✅ Indexes for performance
--- ✅ Auto-timestamp triggers  
--- ✅ Utility functions (order/cart number generation)
--- ✅ Initial product data
--- ✅ Sample coupons
--- ✅ Railway-specific timezone handling
--- ✅ Production-ready constraints and checks
+-- All tables with Railway PostgreSQL optimizations
+-- Foreign key relationships
+-- Indexes for performance
+-- Auto-timestamp triggers  
+-- Utility functions (order/cart number generation)
+-- Initial product data
+-- Sample coupons
+-- Railway-specific timezone handling
+-- Production-ready constraints and checks
