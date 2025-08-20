@@ -35,6 +35,10 @@ app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/wishlist', require('./routes/wishlistRoutes'));
+app.use('/api/contact', require('./routes/contactRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Simple root route
 app.get('/', (req, res) => {
@@ -45,7 +49,11 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       products: '/api/products',
       orders: '/api/orders',
-      cart: '/api/cart'
+      cart: '/api/cart',
+      reviews: '/api/reviews',
+      wishlist: '/api/wishlist',
+      contact: '/api/contact',
+      admin: '/api/admin'
     }
   });
 });

@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE_URL = process.env.REACT_APP_API_URL || (
   process.env.NODE_ENV === 'production'
     ? 'https://your-production-domain.com/api'
-    : 'http://localhost:3001/api'
+    : 'http://localhost:5000/api'
 );
 
 const api = axios.create({
@@ -135,6 +135,66 @@ export const orderAPI = {
   verifyPayment: async (paymentData) => {
     const response = await api.post('/orders/verify-payment', paymentData);
     return response.data;
+  }
+};
+
+// Review API calls
+export const reviewAPI = {
+  listByProduct: async (productName) => {
+    const res = await api.get(`/reviews/product/${productName}`);
+    return res.data;
+  },
+  listByUser: async () => {
+    const res = await api.get('/reviews/user');
+    return res.data;
+  },
+  create: async (payload) => {
+    const res = await api.post('/reviews', payload);
+    return res.data;
+  },
+  update: async (id, payload) => {
+    const res = await api.put(`/reviews/${id}`, payload);
+    return res.data;
+  },
+  remove: async (id) => {
+    const res = await api.delete(`/reviews/${id}`);
+    return res.data;
+  }
+};
+
+// Wishlist API calls
+export const wishlistAPI = {
+  get: async () => {
+    const res = await api.get('/wishlist');
+    return res.data;
+  },
+  add: async (productName) => {
+    const res = await api.post('/wishlist', { productName });
+    return res.data;
+  },
+  remove: async (productName) => {
+    const res = await api.delete(`/wishlist/${productName}`);
+    return res.data;
+  }
+};
+
+// Contact Support API
+export const contactAPI = {
+  create: async (payload) => {
+    const res = await api.post('/contact', payload);
+    return res.data;
+  },
+  getUserTickets: async () => {
+    const res = await api.get('/contact/user');
+    return res.data;
+  }
+};
+
+// Admin API (auth only)
+export const adminAPI = {
+  login: async (email, password) => {
+    const res = await api.post('/admin/login', { email, password });
+    return res.data;
   }
 };
 

@@ -1,231 +1,118 @@
-const { Order, Product, User } = require('../models');
+const { Cart, Product, User } = require('../models');
+const { Op } = require('sequelize');
 
-// Generate a unique CART order number per item
-const generateCartOrderNumber = () => {
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const rand = Math.floor(100000 + Math.random() * 900000);
-  return `CART-${dateStr}-${rand}`;
+// CART_YYYYMMDD_HHMMSS_xxxx helper
+const generateCartNumber = () => {
+  const now = new Date();
+  const pad = (n) => n.toString().padStart(2, '0');
+  const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `CART_${dateStr}_${rand}`;
 };
 
-// @desc    Get user's cart
-// @route   GET /api/cart
-// @access  Private
+const formatDateWithInstructions = (productName, details) => {
+  if (!details) return null;
+  const safeDetails = Array.isArray(details) ? details.join('|') : String(details);
+  return `${productName}|${safeDetails}`;
+};
+
+// GET /api/cart
 exports.getCart = async (req, res) => {
   try {
-    const cartOrders = await Order.findAll({
-      where: {
-        customer_email: req.user.email,
-        order_status: 'pending',
-        payment_status: 'pending'
-      },
-      include: [{ model: Product, as: 'product', attributes: ['name', 'price', 'w_days'] }],
-      order: [['created_at', 'ASC']]
+    const rows = await Cart.findAll({
+      where: { user_email: req.user.email, is_checked_out: false },
+      include: [{ model: Product, as: 'product', attributes: ['name','price','w_days'] }],
+      order: [['created_at','ASC']]
     });
-
-    // Map to maintain compatibility with frontend expecting item.Product and item.id
-    const response = cartOrders.map((o) => {
-      const json = o.toJSON();
-      return {
-        ...json,
-        id: json.order_number,
-        productName: json.product_name,
-        quantity: json.quantity,
-        // expose Product in PascalCase for frontend CartContext
-        Product: json.product ? {
-          name: json.product.name,
-          price: json.product.price,
-          w_days: json.product.w_days
-        } : undefined
-      };
-    });
-
-    res.json(response);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    const resp = rows.map((r)=>({
+      ...r.toJSON(),
+      id: r.id,
+      Product: r.product
+    }));
+    res.json(resp);
+  } catch(err){
+    console.error(err);
+    res.status(500).json({ message:'Server error' });
   }
 };
 
-// @desc    Add item to cart
-// @route   POST /api/cart
-// @access  Private
+// POST /api/cart
 exports.addToCart = async (req, res) => {
   try {
-    const { productName, quantity, customization } = req.body;
+    const { productName, quantity, customization={} } = req.body;
     const userEmail = req.user.email;
 
-    // Derive a stable custom photo reference
-    // Prefer explicit customization.custom_photo_url; else first imageUrls; else folder path
-    let customPhotoUrl = customization?.custom_photo_url || null;
-    if (!customPhotoUrl) {
-      const imgs = Array.isArray(customization?.imageUrls)
-        ? customization.imageUrls.filter(Boolean)
-        : (customization?.imageUrl ? [customization.imageUrl] : []);
-      const folder = customization?.folder || '';
-      customPhotoUrl = imgs[0] || (folder || null);
-    }
-    // Pass-through instructions if provided by client (frontend builds summary text)
-    const datewithInstructions = customization?.datewith_instructions || null;
-
-    // Check if product exists
     const product = await Product.findByPk(productName);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+    if(!product || !product.is_available){
+      return res.status(404).json({ message:'Product not available' });
     }
 
-    // Try to hydrate user info for placeholders
-    let customerName = req.user?.name || req.user?.email || 'Guest';
-    let customerPhone = req.user?.phone || 'N/A';
-    let shippingAddress = req.user?.address || 'TBD';
-    try {
-      if (!req.user?.name || !req.user?.address || !req.user?.phone) {
-        const u = await User.findOne({ where: { email: userEmail } });
-        if (u) {
-          customerName = u.name || customerName;
-          customerPhone = u.phone || customerPhone;
-          shippingAddress = u.address || shippingAddress;
-        }
-      }
-    } catch (_) {}
+    // Determine cart_number: any open cart rows?
+    let cart_number = null;
+    const openRow = await Cart.findOne({ where:{ user_email: userEmail, is_checked_out:false } });
+    if(openRow) cart_number = openRow.cart_number; else cart_number = generateCartNumber();
 
-    // Find existing pending cart row with same product and same customization fields
-    const existing = await Order.findOne({
-      where: {
-        customer_email: userEmail,
-        order_status: 'pending',
-        payment_status: 'pending',
+    // Save only folder path (if provided) otherwise first image as fallback
+    const custom_photo_url = customization.folder || customization.custom_photo_url || (Array.isArray(customization.imageUrls) ? customization.imageUrls[0] : null);
+
+    const datewith_instructions = formatDateWithInstructions(productName, customization?.details || customization?.datewith_instructions);
+
+    // Upsert logic: same product + customization in same cart -> increment
+    const existing = await Cart.findOne({
+      where:{
+        cart_number,
         product_name: productName,
-        custom_photo_url: customPhotoUrl,
-        datewith_instructions: datewithInstructions
+        custom_photo_url,
+        datewith_instructions,
+        is_checked_out:false
       }
     });
 
-    if (existing) {
-      existing.quantity = (existing.quantity || 0) + (quantity || 1);
-      existing.unit_price = product.price; // ensure price consistency
-      existing.order_amount = (Number(existing.unit_price) || 0) * (existing.quantity || 1);
+    const qty = parseInt(quantity)||1;
+
+    if(existing){
+      existing.quantity += qty;
       await existing.save();
-      return res.json({
-        ...existing.toJSON(),
-        id: existing.order_number
-      });
+      return res.json(existing);
     }
 
-    const order_number = generateCartOrderNumber();
-    const unit_price = product.price;
-    const qty = quantity || 1;
-    const order_amount = (Number(unit_price) || 0) * qty;
-
-    const created = await Order.create({
-      order_number,
-      customer_name: customerName,
-      customer_email: userEmail,
-      customer_phone: customerPhone,
-      shipping_address: shippingAddress,
+    const created = await Cart.create({
+      cart_number,
+      user_email: userEmail,
       product_name: productName,
       quantity: qty,
-      unit_price,
-      order_amount,
-      custom_photo_url: customPhotoUrl,
-      datewith_instructions: datewithInstructions,
-      order_status: 'pending',
-      payment_status: 'pending'
+      unit_price: product.price,
+      custom_photo_url,
+      datewith_instructions,
+      is_checked_out:false
     });
-
-    res.status(201).json({
-      ...created.toJSON(),
-      id: created.order_number
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(201).json(created);
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ message:'Server error' });
   }
 };
 
-// @desc    Update cart item quantity
-// @route   PUT /api/cart/:id
-// @access  Private
+// PUT /api/cart/:id
 exports.updateCartItem = async (req, res) => {
   try {
+    const { id } = req.params;
     const { quantity } = req.body;
-    const { id } = req.params;
-    const userEmail = req.user.email;
-
-    const orderRow = await Order.findOne({
-      where: {
-        order_number: id,
-        customer_email: userEmail,
-        order_status: 'pending',
-        payment_status: 'pending'
-      }
-    });
-
-    if (!orderRow) {
-      return res.status(404).json({ message: 'Cart item not found' });
-    }
-
-    if (quantity <= 0) {
-      await orderRow.destroy();
-      return res.json({ message: 'Cart item removed' });
-    }
-
-    orderRow.quantity = quantity;
-    // Recalculate order_amount
-    const unit = Number(orderRow.unit_price) || 0;
-    orderRow.order_amount = unit * Number(quantity);
-    await orderRow.save();
-    res.json({ ...orderRow.toJSON(), id: orderRow.order_number });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
+    const row = await Cart.findOne({ where:{ id, user_email: req.user.email, is_checked_out:false } });
+    if(!row) return res.status(404).json({ message:'Cart item not found' });
+    if(quantity<=0){ await row.destroy(); return res.json({ message:'Cart item removed' }); }
+    row.quantity = quantity;
+    await row.save();
+    res.json(row);
+  }catch(err){console.error(err);res.status(500).json({ message:'Server error' });}
 };
 
-// @desc    Remove item from cart
-// @route   DELETE /api/cart/:id
-// @access  Private
-exports.removeFromCart = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userEmail = req.user.email;
-
-    const orderRow = await Order.findOne({
-      where: {
-        order_number: id,
-        customer_email: userEmail,
-        order_status: 'pending',
-        payment_status: 'pending'
-      }
-    });
-
-    if (!orderRow) {
-      return res.status(404).json({ message: 'Cart item not found' });
-    }
-
-    await orderRow.destroy();
-    res.json({ message: 'Cart item removed' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
+// DELETE /api/cart/:id
+exports.removeFromCart = async (req,res)=>{
+  try{ const { id } = req.params; const row = await Cart.findOne({ where:{ id, user_email:req.user.email, is_checked_out:false } }); if(!row) return res.status(404).json({ message:'Cart item not found' }); await row.destroy(); res.json({ message:'Cart item removed' }); }catch(err){ console.error(err); res.status(500).json({ message:'Server error' }); }
 };
 
-// @desc    Clear user's cart
-// @route   DELETE /api/cart
-// @access  Private
-exports.clearCart = async (req, res) => {
-  try {
-    const userEmail = req.user.email;
-    await Order.destroy({
-      where: {
-        customer_email: userEmail,
-        order_status: 'pending',
-        payment_status: 'pending'
-      }
-    });
-    res.json({ message: 'Cart cleared' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
+// DELETE /api/cart
+exports.clearCart = async (req,res)=>{
+  try{ await Cart.destroy({ where:{ user_email:req.user.email, is_checked_out:false } }); res.json({ message:'Cart cleared' }); }catch(err){ console.error(err); res.status(500).json({ message:'Server error' }); }
 };

@@ -10,16 +10,20 @@ const Cart = sequelize.define('Cart', {
     primaryKey: true,
     allowNull: false
   },
-  userEmail: {
-    type: DataTypes.STRING,
-    allowNull: false,
+  cart_number: {
+    type: DataTypes.STRING(50),
+    allowNull: false
+  },
+  user_email: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
     references: {
       model: User,
       key: 'email'
     }
   },
-  productName: {
-    type: DataTypes.STRING,
+  product_name: {
+    type: DataTypes.STRING(255),
     allowNull: false,
     references: {
       model: Product,
@@ -29,23 +33,45 @@ const Cart = sequelize.define('Cart', {
   quantity: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 1
+    defaultValue: 1,
+    validate: {
+      min: 1
+    }
   },
-  customization: {
-    type: DataTypes.JSONB,
+  unit_price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false
+  },
+  custom_photo_url: {
+    type: DataTypes.STRING(500),
     allowNull: true
+  },
+  datewith_instructions: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  is_checked_out: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
-  tableName: 'carts',
+  tableName: 'cart',
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: 'updated_at'
 });
 
-User.hasMany(Cart, { foreignKey: 'userEmail' });
-Cart.belongsTo(User, { foreignKey: 'userEmail' });
+// Define associations
+Cart.belongsTo(User, { 
+  foreignKey: 'user_email',
+  targetKey: 'email',
+  as: 'user'
+});
 
-Product.hasMany(Cart, { foreignKey: 'productName' });
-Cart.belongsTo(Product, { foreignKey: 'productName' });
+Cart.belongsTo(Product, { 
+  foreignKey: 'product_name',
+  targetKey: 'name',
+  as: 'product'
+});
 
 module.exports = Cart;

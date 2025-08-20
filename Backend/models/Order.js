@@ -7,6 +7,18 @@ const Order = sequelize.define('Order', {
     primaryKey: true,
     allowNull: false
   },
+  cart_number: {
+    type: DataTypes.STRING(50),
+    allowNull: false
+  },
+  user_email: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'email'
+    }
+  },
   customer_name: {
     type: DataTypes.STRING(100),
     allowNull: false
@@ -23,49 +35,28 @@ const Order = sequelize.define('Order', {
     type: DataTypes.TEXT,
     allowNull: false
   },
-  product_name: {
-    type: DataTypes.STRING(255),
-    allowNull: false
-  },
-  quantity: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1
-  },
-  unit_price: {
+  total_amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
-  },
-  order_amount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false
-  },
-  custom_photo_url: {
-    type: DataTypes.STRING(500)
-  },
-  datewith_instructions: {
-    type: DataTypes.TEXT
   },
   order_status: {
     type: DataTypes.ENUM('pending', 'confirmed', 'shipped', 'delivered', 'cancelled'),
     defaultValue: 'pending'
   },
   payment_id: {
-    type: DataTypes.STRING(255)
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    references: {
+      model: 'payments',
+      key: 'payment_id'
+    }
   },
-  payment_status: {
-    type: DataTypes.ENUM('pending', 'completed', 'failed'),
-    defaultValue: 'pending'
+  coupon_code: {
+    type: DataTypes.STRING(50)
   },
-  payment_method: {
-    type: DataTypes.STRING(50),
-    defaultValue: 'UPI'
-  },
-  upi_transaction_id: {
-    type: DataTypes.STRING(255)
-  },
-  upi_reference_id: {
-    type: DataTypes.STRING(255)
+  discount_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00
   }
 }, {
   tableName: 'orders',

@@ -3,34 +3,26 @@ const { User } = require('../models');
 
 exports.protect = async (req, res, next) => {
   let token;
-  
+
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
-      // Get token from header
       token = req.headers.authorization.split(' ')[1];
-      
-      // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      // Get user from the token (supports tokens with id or email)
-      const lookupEmail = decoded.email || decoded.id; // our User PK is email
-      if (lookupEmail) {
-        req.user = await User.findOne({
-          where: { email: lookupEmail },
-          attributes: { exclude: ['password'] }
-        });
-      }
-      
-      next();
+      const lookupEmail = decoded.email || decoded.id; // token may contain either
+      if (!lookupEmail) throw new Error('Invalid token payload');
+
+      const user = await User.findOne({ where: { email: lookupEmail }, attributes: { exclude: ['password'] } });
+      if (!user) throw new Error('User not found');
+
+      req.user = user;
+      return next();
     } catch (error) {
-      console.error(error);
-      res.status(401).json({ message: 'Not authorized, token failed' });
+      console.error('Auth protect error:', error.message || error);
+      return res.status(401).json({ message: 'Not authorized' });
     }
   }
-  
-  if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
-  }
+
+  return res.status(401).json({ message: 'Not authorized, no token' });
 };
 
 // Optional auth - sets user if token is valid but doesn't block request if no token
