@@ -16,15 +16,19 @@ import CurrencyNotes from './pages/products/CurrencyNotes';
 import FramedNotes from './pages/products/FramedNotes';
 import ResinFrames from './pages/products/ResinFrames';
 import ZodiacCoins from './pages/products/ZodiacCoins';
+import AdminRequireGuard from './pages/admin/AdminRequire';
+import AdminLoginPage from './pages/admin/AdminLogin';
+import AdminDashboardPage from './pages/admin/AdminDashboard';
 import './App.css';
 
 function App() {
+  const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
   return (
     <Router>
       <AuthProvider>
         <CartProvider>
           <div className="App">
-            <Navbar />
+            {!isAdminRoute && <Navbar />}
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/products/currency-notes" element={<CurrencyNotes />} />
@@ -38,8 +42,10 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/account" element={<Account />} />
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/admin" element={<AdminRequireGuard><AdminDashboardPage /></AdminRequireGuard>} />
             </Routes>
-            <ScrollToTop />
+            {!isAdminRoute && <ScrollToTop />}
           </div>
         </CartProvider>
       </AuthProvider>

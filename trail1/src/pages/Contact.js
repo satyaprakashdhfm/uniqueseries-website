@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { contactAPI } from '../services/api';
 import './Contact.css';
 
 const Contact = () => {
@@ -9,24 +10,48 @@ const Contact = () => {
     subject: '',
     message: ''
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    if (success) setSuccess('');
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Thank you for your message! We will get back to you soon.');
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: ''
-    });
+    setSubmitting(true);
+    setSuccess('');
+    setError('');
+    try {
+      const contextLines = [];
+      if (formData.name) contextLines.push(`From: ${formData.name}`);
+      const contactBits = [formData.email, formData.phone].filter(Boolean).join(' | ');
+      if (contactBits) contextLines.push(contactBits);
+      const composed = [
+        contextLines.length ? `(${contextLines.join(' - ')})` : '',
+        formData.message
+      ].filter(Boolean).join('\n\n');
+
+      await contactAPI.create({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        subject: formData.subject,
+        message: composed
+      });
+      setSuccess('Thank you! Your message has been sent. We will get back to you soon.');
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to send your message. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -74,8 +99,6 @@ const Contact = () => {
                     <p>uniqueseries500@gmail.com</p>
                   </div>
                 </div>
-
-
               </div>
             </div>
 
@@ -83,6 +106,8 @@ const Contact = () => {
             <div className="contact-form-container">
               <form onSubmit={handleSubmit} className="contact-form">
                 <h2>Send us a Message</h2>
+                {success && <div className="form-success" role="status">{success}</div>}
+                {error && <div className="form-error" role="alert">{error}</div>}
                 
                 <div className="form-row">
                   <div className="form-group">
@@ -159,8 +184,8 @@ const Contact = () => {
                   ></textarea>
                 </div>
 
-                <button type="submit" className="btn btn-primary submit-btn">
-                  Send Message
+                <button type="submit" className="btn btn-primary submit-btn" disabled={submitting}>
+                  {submitting ? 'Sending…' : 'Send Message'}
                 </button>
               </form>
             </div>

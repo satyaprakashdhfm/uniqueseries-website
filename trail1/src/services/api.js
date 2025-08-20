@@ -41,6 +41,33 @@ api.interceptors.response.use(
   }
 );
 
+// Admin axios instance (separate token & redirects)
+const adminApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000
+});
+
+adminApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('adminToken');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+adminApi.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('adminToken');
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth API calls
 export const authAPI = {
   register: async (userData) => {
@@ -194,6 +221,34 @@ export const contactAPI = {
 export const adminAPI = {
   login: async (email, password) => {
     const res = await api.post('/admin/login', { email, password });
+    return res.data;
+  }
+};
+
+// Admin Orders/Reports API (protected)
+export const adminOrdersAPI = {
+  list: async ({ page = 1, limit = 20, from, to, status, search, sort = 'created_at:desc' } = {}) => {
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('limit', limit);
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    if (status) params.append('status', status);
+    if (search) params.append('search', search);
+    if (sort) params.append('sort', sort);
+    const res = await adminApi.get(`/admin/orders?${params.toString()}`);
+    return res.data; // { rows, count }
+  },
+  detail: async (orderNumber) => {
+    const res = await adminApi.get(`/admin/orders/${orderNumber}`);
+    return res.data;
+  },
+  summary: async ({ period = 'today', from, to } = {}) => {
+    const params = new URLSearchParams();
+    if (period) params.append('period', period);
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    const res = await adminApi.get(`/admin/summary?${params.toString()}`);
     return res.data;
   }
 };

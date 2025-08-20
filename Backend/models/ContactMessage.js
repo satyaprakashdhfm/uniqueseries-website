@@ -7,25 +7,30 @@ const ContactMessage = sequelize.define('ContactMessage', {
     autoIncrement: true,
     primaryKey: true
   },
-  user_email: {
+  // Identity fields captured from guest or authenticated user
+  name: {
     type: DataTypes.STRING(255),
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'email'
-    }
+    allowNull: false
+  },
+  email: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  phone: {
+    type: DataTypes.STRING(20),
+    allowNull: true
   },
   subject: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: true
   },
   message: {
     type: DataTypes.TEXT,
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('open','in_progress','resolved','closed'),
-    defaultValue: 'open'
+    type: DataTypes.ENUM('new','in_progress','resolved','closed'),
+    defaultValue: 'new'
   },
   assigned_to: {
     type: DataTypes.INTEGER,
