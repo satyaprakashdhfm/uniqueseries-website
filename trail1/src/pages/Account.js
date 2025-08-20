@@ -123,6 +123,20 @@ const Account = () => {
                           <span className="item-qty">Qty: {it.quantity}</span>
                           <span className="item-unit">Unit: ₹{Number(it.unit_price || 0).toFixed(2)}</span>
                           <span className="item-subtotal">Subtotal: ₹{(Number(it.unit_price || 0) * Number(it.quantity || 0)).toFixed(2)}</span>
+                          {it.price_breakdown && (
+                            <div style={{ marginTop: 6, padding: 8, background: '#fafafa', borderRadius: 6, border: '1px solid #eee' }}>
+                              <div style={{ fontWeight: 600, marginBottom: 4 }}>Pricing</div>
+                              <div>Base: ₹{it.price_breakdown.base}</div>
+                              {Array.isArray(it.price_breakdown.extras) && it.price_breakdown.extras.map((ex, i) => {
+                                const hasL = typeof ex.letters === 'number' && !isNaN(ex.letters);
+                                return (
+                                  <div key={i}>{ex.label}{hasL ? `: ${ex.letters} letters` : ''} — ₹{ex.cost}</div>
+                                );
+                              })}
+                              <div>Total Extras: ₹{it.price_breakdown.totalExtras}</div>
+                              <div style={{ marginTop: 4 }}><strong>Final Price:</strong> ₹{Number(it.unit_price || 0).toFixed(2)}</div>
+                            </div>
+                          )}
                           {(() => {
                             const raw = it.datewith_instructions || '';
                             if (!raw) return null;

@@ -42,6 +42,18 @@ ProductReview.belongsTo(Product, { foreignKey: 'product_name', targetKey: 'name'
 User.hasMany(ProductReview, { foreignKey: 'user_email', sourceKey: 'email', as: 'reviews' });
 Product.hasMany(ProductReview, { foreignKey: 'product_name', sourceKey: 'name', as: 'reviews' });
 
+// OrderItem associations (needed for price_breakdown eager-load)
+OrderItem.belongsTo(Product, {
+  foreignKey: 'product_name',
+  targetKey: 'name',
+  as: 'product'
+});
+Product.hasMany(OrderItem, {
+  foreignKey: 'product_name',
+  sourceKey: 'name',
+  as: 'orderItems'
+});
+
 // Wishlist associations
 Wishlist.belongsTo(User, { foreignKey: 'user_email', targetKey: 'email', as: 'user' });
 Wishlist.belongsTo(Product, { foreignKey: 'product_name', targetKey: 'name', as: 'product' });

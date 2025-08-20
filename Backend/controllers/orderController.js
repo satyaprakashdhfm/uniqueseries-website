@@ -90,7 +90,21 @@ exports.getOrderById = async (req,res)=>{
     const { id } = req.params;
     const order = await Order.findOne({ where:{ order_number:id }, include:[{ model: Payment, as:'payment' }] });
     if(!order) return res.status(404).json({ message:'Order not found' });
-    const items = await OrderItem.findAll({ where:{ order_number:id } });
+    const itemsRaw = await OrderItem.findAll({ where:{ order_number:id }, include:[{ model: Product, as:'product', attributes:['price'] }] });
+    const items = itemsRaw.map((it)=>{
+      const obj = it.toJSON();
+      const base = obj.product?.price != null ? Number(obj.product.price) : Number(obj.unit_price);
+      const unit = Number(obj.unit_price);
+      const totalExtras = unit - base;
+      return {
+        ...obj,
+        price_breakdown:{
+          base,
+          extras: totalExtras>0 ? [{ label:'Extras', cost: totalExtras }] : [],
+          totalExtras: totalExtras>0 ? totalExtras : 0
+        }
+      };
+    });
     res.json({ ...order.toJSON(), items });
   }catch(err){ console.error(err); res.status(500).json({ message:'Server error' }); }
 };
@@ -100,7 +114,24 @@ exports.getUserOrders = async (req,res)=>{
   try{
     const email = req.user.email;
     const orders = await Order.findAll({ where:{ user_email:email }, order:[['created_at','DESC']] });
-    const withItems = await Promise.all(orders.map(async(o)=>({ ...o.toJSON(), items: await OrderItem.findAll({ where:{ order_number:o.order_number } }) })));
+    const withItems = await Promise.all(orders.map(async(o)=>{
+      const rawItems = await OrderItem.findAll({ where:{ order_number:o.order_number }, include:[{ model: Product, as:'product', attributes:['price'] }] });
+      const items = rawItems.map((it)=>{
+        const obj = it.toJSON();
+        const base = obj.product?.price != null ? Number(obj.product.price) : Number(obj.unit_price);
+        const unit = Number(obj.unit_price);
+        const totalExtras = unit - base;
+        return {
+          ...obj,
+          price_breakdown:{
+            base,
+            extras: totalExtras>0 ? [{ label:'Extras', cost: totalExtras }] : [],
+            totalExtras: totalExtras>0 ? totalExtras : 0
+          }
+        };
+      });
+      return { ...o.toJSON(), items };
+    }));
     res.json(withItems);
   }catch(err){ console.error(err); res.status(500).json({ message:'Server error' }); }
 };

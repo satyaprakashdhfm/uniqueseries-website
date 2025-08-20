@@ -184,7 +184,7 @@ const Payment = () => {
           ? item.customization.imageUrls.filter(Boolean)
           : (item.customization?.imageUrl ? [item.customization.imageUrl] : []);
         const folder = item.customization?.folder || '';
-        const priceBreakdown = c.priceBreakdown || null;
+        const priceBreakdown = item.priceBreakdown || item.customization?.priceBreakdown;
 
         // If we have a price breakdown, append a concise summary into instructions
         if (priceBreakdown) {
@@ -314,7 +314,7 @@ const Payment = () => {
                         const directImgs = (folderOrUrl && isHttp(folderOrUrl)) ? [folderOrUrl] : [];
                         const allImgs = [...directImgs, ...folderImgs];
 
-                        const price = item.customization?.priceBreakdown;
+                        const price = item.priceBreakdown || item.customization?.priceBreakdown;
 
                         if (parts.length === 0 && allImgs.length === 0 && !price) return null;
 
