@@ -163,7 +163,8 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
     }
   };
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  // const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api'; // unused
+  // let imageUrl = null; // unused
 
   const uploadImages = async () => {
     if (!imageFiles || imageFiles.length === 0) return [];
@@ -241,7 +242,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
     setIsSubmitting(true);
     try {
       console.log('[Customization] submit:start', { productName: product?.name, productId: product?.id });
-      let imageUrl = null;
+      // let imageUrl = null; // unused
       const productType = product.category?.toLowerCase() || product.type?.toLowerCase() || '';
       const isFrameOrResin = productType.includes('frame') || productType.includes('resin');
       const isFrame = productType.includes('frame') && !productType.includes('resin');
@@ -1241,7 +1242,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                                   cost: note?.currency ? getNotePrice(note.currency) : 0,
                                   index: i
                                 }))
-                                .filter(it => !!it.currency);
+                                .filter(Boolean);
                               return (
                                 <>
                                   {nameItems.map((it, i) => (

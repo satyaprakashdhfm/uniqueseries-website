@@ -65,6 +65,7 @@ export const CartProvider = ({ children }) => {
 
   useEffect(() => {
     calculateCartTotals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartItems]);
 
   const calculateCartTotals = () => {
