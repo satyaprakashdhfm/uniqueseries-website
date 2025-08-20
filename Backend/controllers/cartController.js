@@ -89,11 +89,23 @@ exports.getCart = async (req, res) => {
       include: [{ model: Product, as: 'product', attributes: ['name','price','w_days'] }],
       order: [['created_at','ASC']]
     });
-    const resp = rows.map((r)=>({
-      ...r.toJSON(),
-      id: r.id,
-      Product: r.product
-    }));
+    const resp = rows.map((r)=>{
+      const obj = r.toJSON();
+      const base = r.product?.price != null ? Number(r.product.price) : Number(r.unit_price);
+      const unit = Number(r.unit_price);
+      const totalExtras = unit - base;
+      return {
+        ...obj,
+        id: r.id,
+        price: unit,
+        Product: r.product,
+        priceBreakdown: {
+          base,
+          extras: totalExtras>0 ? [{ label: 'Extras', cost: totalExtras }] : [],
+          totalExtras: totalExtras>0 ? totalExtras : 0
+        }
+      };
+    });
     res.json(resp);
   } catch(err){
     console.error(err);
@@ -122,6 +134,12 @@ exports.addToCart = async (req, res) => {
 
     const datewith_instructions = formatDateWithInstructions(product, customization);
 
+    // Calculate final unit price: base product price + any extras sent from frontend
+    let unit_price = Number(product.price);
+    if (customization && customization.priceBreakdown && typeof customization.priceBreakdown.totalExtras === 'number') {
+      unit_price += Number(customization.priceBreakdown.totalExtras);
+    }
+
     // Upsert logic: same product + customization in same cart -> increment
     const existing = await Cart.findOne({
       where:{
@@ -146,7 +164,7 @@ exports.addToCart = async (req, res) => {
       user_email: userEmail,
       product_name: productName,
       quantity: qty,
-      unit_price: product.price,
+      unit_price,
       custom_photo_url,
       datewith_instructions,
       is_checked_out:false

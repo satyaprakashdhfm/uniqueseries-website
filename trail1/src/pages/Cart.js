@@ -88,7 +88,7 @@ const Cart = () => {
                       const directImgs = item.custom_photo_url && isHttp(item.custom_photo_url) ? [item.custom_photo_url] : [];
                       const allImgs    = [...directImgs, ...folderImgs];
 
-                      const showPrice  = item.customization?.priceBreakdown;
+                      const showPrice  = item.priceBreakdown || item.customization?.priceBreakdown;
 
                       return (
                         <div style={{ marginTop: 6, fontSize: '0.9rem', color: '#333' }}>
