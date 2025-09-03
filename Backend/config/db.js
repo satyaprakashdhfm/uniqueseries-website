@@ -12,22 +12,20 @@ if (hasDatabaseUrl) {
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
     protocol: 'postgres',
-    logging: false,
+    logging: true, // Enable logging temporarily for debugging
     pool: {
       max: 5,
       min: 0,
-      acquire: 30000,
+      acquire: 60000, // Increased timeout
       idle: 10000
     },
-    dialectOptions: isProduction
-      ? {
-          ssl: {
-            require: true,
-            // Railway-managed Postgres often uses self-signed certs
-            rejectUnauthorized: false
-          }
-        }
-      : {}
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      },
+      connectTimeout: 60000 // Increased timeout
+    }
   });
 } else {
   // Local/dev fallback using discrete envs

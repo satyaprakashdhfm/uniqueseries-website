@@ -8,19 +8,14 @@ const path = require('path');
 const { connectDB, sequelize } = require('./config/db');
 const corsOptions = require('./config/corsConfig');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
-
 // Load environment variables
 dotenv.config();
-
 // Connect to database
 connectDB();
-
 // Initialize express
 const app = express();
-
 // Trust proxy (needed on Railway/behind proxies for correct IP/proto)
 app.set('trust proxy', 1);
-
 // Middleware
 app.use(cors(corsOptions));
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -28,10 +23,8 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-
 // Static folder for uploads (note: ephemeral on Railway)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // Health check endpoints
 app.get('/health', (req, res) => res.status(200).send('ok'));
 app.get('/ready', async (req, res) => {
@@ -42,7 +35,7 @@ app.get('/ready', async (req, res) => {
     return res.status(500).send('db_unavailable');
   }
 });
-
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'OK', message: 'API is running' }));
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
@@ -53,10 +46,9 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
-
 // Simple root route
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Currency Gift Store API is running',
     version: '1.0.0',
     endpoints: {
@@ -71,17 +63,14 @@ app.get('/', (req, res) => {
     }
   });
 });
-
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
-
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
-
 // Test database connection only (tables already exist)
 (async () => {
   try {
