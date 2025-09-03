@@ -1,22 +1,53 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'currency_gift_store_satya3479',
-  process.env.DB_USER || 'satya3479',
-  process.env.DB_PASSWORD || '1234',
-  {
-    host: process.env.DB_HOST || 'localhost',
+// Prefer DATABASE_URL when provided (Railway/Heroku style)
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_STATIC_URL || !!process.env.RAILWAY_ENVIRONMENT || hasDatabaseUrl;
+
+let sequelize;
+
+if (hasDatabaseUrl) {
+  // Example: postgres://user:pass@host:port/dbname
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
+    protocol: 'postgres',
     logging: false,
     pool: {
       max: 5,
       min: 0,
       acquire: 30000,
       idle: 10000
+    },
+    dialectOptions: isProduction
+      ? {
+          ssl: {
+            require: true,
+            // Railway-managed Postgres often uses self-signed certs
+            rejectUnauthorized: false
+          }
+        }
+      : {}
+  });
+} else {
+  // Local/dev fallback using discrete envs
+  sequelize = new Sequelize(
+    process.env.DB_NAME || 'currency_gift_store_satya3479',
+    process.env.DB_USER || 'satya3479',
+    process.env.DB_PASSWORD || '1234',
+    {
+      host: process.env.DB_HOST || 'localhost',
+      dialect: 'postgres',
+      logging: false,
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      }
     }
-  }
-);
+  );
+}
 
 const connectDB = async () => {
   try {
