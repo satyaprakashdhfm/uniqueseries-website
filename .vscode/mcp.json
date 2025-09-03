@@ -1,0 +1,14 @@
+{
+	"servers": {
+		"postgres": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-postgres",
+                "postgresql://satya3479:1234@localhost:5432/currency_gift_store_satya3479"
+			],
+			"type": "stdio"
+		}
+	},
+	"inputs": []
+}
