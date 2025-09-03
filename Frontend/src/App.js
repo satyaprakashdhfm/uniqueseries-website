@@ -18,6 +18,10 @@ import ResinFrames from './pages/products/ResinFrames';
 import ZodiacCoins from './pages/products/ZodiacCoins';
 import AdminRequireGuard from './pages/admin/AdminRequire';
 import AdminLoginPage from './pages/admin/AdminLogin';
+import Terms from './pages/Terms';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import RefundPolicy from './pages/RefundPolicy';
+import ShippingPolicy from './pages/ShippingPolicy';
 import AdminDashboardPage from './pages/admin/AdminDashboard';
 import './App.css';
 
@@ -42,6 +46,10 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/account" element={<Account />} />
+              <Route path="/terms-and-conditions" element={<Terms />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
+              <Route path="/shipping-policy" element={<ShippingPolicy />} />
               <Route path="/admin/login" element={<AdminLoginPage />} />
               <Route path="/admin" element={<AdminRequireGuard><AdminDashboardPage /></AdminRequireGuard>} />
             </Routes>
