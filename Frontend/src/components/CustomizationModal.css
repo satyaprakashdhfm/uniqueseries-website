@@ -264,3 +264,86 @@
   outline: 2px solid #d63384;
   outline-offset: 2px;
 }
+
+/* Image preview and removal styles */
+.image-preview-container {
+  margin-top: 10px;
+}
+
+.image-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.image-counter {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.clear-all-btn {
+  background: none;
+  border: none;
+  color: #d63384;
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.clear-all-btn:hover {
+  background-color: rgba(214, 51, 132, 0.1);
+  text-decoration: none;
+}
+
+.image-preview-item {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.image-preview-item:hover {
+  transform: scale(1.02);
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #d63384;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.remove-image-btn:hover {
+  background: #b02a5b;
+  transform: scale(1.1);
+}
+
+.remove-image-btn:active {
+  transform: scale(0.95);
+}

@@ -163,6 +163,25 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
     }
   };
 
+  const removeImage = (indexToRemove) => {
+    const newImageFiles = imageFiles.filter((_, index) => index !== indexToRemove);
+    const newImagePreviews = imagePreviews.filter((_, index) => index !== indexToRemove);
+    setImageFiles(newImageFiles);
+    setImagePreviews(newImagePreviews);
+  };
+
+  const clearAllImages = () => {
+    setImageFiles([]);
+    setImagePreviews([]);
+    // Reset the file input values by targeting them more specifically
+    const fileInputs = document.querySelectorAll('#resinImages, #frameImages, #customImage');
+    fileInputs.forEach(input => {
+      if (input) {
+        input.value = '';
+      }
+    });
+  };
+
   // const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api'; // unused
   // let imageUrl = null; // unused
 
@@ -637,7 +656,10 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           maxLength={50}
                           required
                         />
-                        <small className="helper-text">Provide the Event and Event Date below. Pricing: ≤10 letters: ₹45 flat; {'>'}10 letters: ₹40 per letter (max 50 letters).</small>
+                        <small className="helper-text">
+                          • Up to 10 letters: ₹45 per letter<br/>
+                          • More than 10 letters: ₹40 per letter (50 letters max)
+                        </small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="resinEvent">Event *</label>
@@ -695,7 +717,10 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           maxLength={50}
                           required
                         />
-                        <small className="helper-text">Enter Date 1 below this name. Pricing: ≤10 letters: ₹45 flat; {'>'}10 letters: ₹40 per letter (max 50 letters).</small>
+                        <small className="helper-text">
+                          • Up to 10 letters: ₹45 per letter<br/>
+                          • More than 10 letters: ₹40 per letter (50 letters max)
+                        </small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="resinDate1">Date 1 *</label>
@@ -707,6 +732,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           className="form-input"
                           required
                         />
+                        <small className="helper-text">Enter date for: {customization.resinName1 || 'Person 1'}</small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="resinName2">Person 2 Name *</label>
@@ -719,7 +745,10 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           maxLength={50}
                           required
                         />
-                        <small className="helper-text">Enter Date 2 below this name. Pricing: ≤10 letters: ₹45 flat; {'>'}10 letters: ₹40 per letter (max 50 letters).</small>
+                        <small className="helper-text">
+                          • Up to 10 letters: ₹45 per letter<br/>
+                          • More than 10 letters: ₹40 per letter (50 letters max)
+                        </small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="resinDate2">Date 2 *</label>
@@ -731,6 +760,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           className="form-input"
                           required
                         />
+                        <small className="helper-text">Enter date for: {customization.resinName2 || 'Person 2'}</small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="resinEvent">Event *</label>
@@ -789,10 +819,36 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                       className="form-input"
                     />
                     {imagePreviews && imagePreviews.length > 0 && (
-                      <div className="image-preview" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '10px' }}>
-                        {imagePreviews.map((src, idx) => (
-                          <img key={idx} src={src} alt={`Preview ${idx+1}`} style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '6px' }} />
-                        ))}
+                      <div className="image-preview-container">
+                        <div className="image-preview-header">
+                          <span className="image-counter">Selected Images ({imagePreviews.length})</span>
+                          <button 
+                            type="button" 
+                            onClick={clearAllImages}
+                            className="clear-all-btn"
+                            title="Clear all images"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        <div className="image-preview" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
+                          {imagePreviews.map((src, idx) => (
+                            <div key={idx} className="image-preview-item">
+                              <img 
+                                src={src} 
+                                alt={`Preview ${idx+1}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(idx)}
+                                className="remove-image-btn"
+                                title="Remove image"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -955,7 +1011,10 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           maxLength={50}
                           required
                         />
-                        <small className="helper-text">Pricing: ≤10 letters: ₹45 flat; {'>'}10 letters: ₹40 per letter (max 50 letters).</small>
+                        <small className="helper-text">
+                          • Names up to 10 letters: ₹45 flat rate<br/>
+                          • Names over 10 letters: ₹40 per letter (maximum 50 letters)
+                        </small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="frameEvent">Event *</label>
@@ -1013,7 +1072,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           maxLength={50}
                           required
                         />
-                        <small className="helper-text">Pricing: ≤10 letters: ₹45 flat; {'>'}10 letters: ₹40 per letter (max 50 letters).</small>
+                        <small className="helper-text">Name pricing: Up to 10 letters ₹45 per letter, over 10 letters ₹40 per letter (50 letters max).</small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="frameDate1">Date 1 *</label>
@@ -1025,6 +1084,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           className="form-input"
                           required
                         />
+                        <small className="helper-text">Enter date for: {customization.frameName1 || 'Name 1'}</small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="frameName2">Name 2 *</label>
@@ -1037,7 +1097,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           maxLength={50}
                           required
                         />
-                        <small className="helper-text">Pricing: ≤10 letters: ₹45 flat; {'>'}10 letters: ₹40 per letter (max 50 letters).</small>
+                        <small className="helper-text">Name pricing: Up to 10 letters ₹45 per letter, over 10 letters ₹40 per letter (50 letters max).</small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="frameDate2">Date 2 *</label>
@@ -1049,6 +1109,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           className="form-input"
                           required
                         />
+                        <small className="helper-text">Enter date for: {customization.frameName2 || 'Name 2'}</small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="frameEvent">Event *</label>
@@ -1162,7 +1223,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           maxLength={50}
                           required
                         />
-                        <small className="helper-text">Pricing: ≤10 letters: ₹45 flat; {'>'}10 letters: ₹40 per letter (max 50 letters).</small>
+                        <small className="helper-text">Name pricing: Up to 10 letters ₹45 per letter, over 10 letters ₹40 per letter (50 letters max).</small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="frameDate1">Date 1 *</label>
@@ -1174,6 +1235,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           className="form-input"
                           required
                         />
+                        <small className="helper-text">Enter date for: {customization.frameName1 || 'Name 1'}</small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="frameName2">Name 2 *</label>
@@ -1186,7 +1248,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           maxLength={50}
                           required
                         />
-                        <small className="helper-text">Pricing: ≤10 letters: ₹45 flat; {'>'}10 letters: ₹40 per letter (max 50 letters).</small>
+                        <small className="helper-text">Name pricing: Up to 10 letters ₹45 per letter, over 10 letters ₹40 per letter (50 letters max).</small>
                       </div>
                       <div className="form-group">
                         <label htmlFor="frameDate2">Date 2 *</label>
@@ -1198,6 +1260,7 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                           className="form-input"
                           required
                         />
+                        <small className="helper-text">Enter date for: {customization.frameName2 || 'Name 2'}</small>
                       </div>
                       {/* Set info moved to top of big frame section */}
                     </>
@@ -1216,10 +1279,36 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                       className="form-input"
                     />
                     {imagePreviews && imagePreviews.length > 0 && (
-                      <div className="image-preview" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '10px' }}>
-                        {imagePreviews.map((src, idx) => (
-                          <img key={idx} src={src} alt={`Preview ${idx+1}`} style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '6px' }} />
-                        ))}
+                      <div className="image-preview-container">
+                        <div className="image-preview-header">
+                          <span className="image-counter">Selected Images ({imagePreviews.length})</span>
+                          <button 
+                            type="button" 
+                            onClick={clearAllImages}
+                            className="clear-all-btn"
+                            title="Clear all images"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        <div className="image-preview" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
+                          {imagePreviews.map((src, idx) => (
+                            <div key={idx} className="image-preview-item">
+                              <img 
+                                src={src} 
+                                alt={`Preview ${idx+1}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(idx)}
+                                className="remove-image-btn"
+                                title="Remove image"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1411,10 +1500,36 @@ const CustomizationModal = ({ isOpen, onClose, product, onAddToCart }) => {
                   className="form-input"
                 />
                 {imagePreviews && imagePreviews.length > 0 && (
-                  <div className="image-preview" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '10px' }}>
-                    {imagePreviews.map((src, idx) => (
-                      <img key={idx} src={src} alt={`Preview ${idx+1}`} style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '6px' }} />
-                    ))}
+                  <div className="image-preview-container">
+                    <div className="image-preview-header">
+                      <span className="image-counter">Selected Images ({imagePreviews.length})</span>
+                      <button 
+                        type="button" 
+                        onClick={clearAllImages}
+                        className="clear-all-btn"
+                        title="Clear all images"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                    <div className="image-preview" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
+                      {imagePreviews.map((src, idx) => (
+                        <div key={idx} className="image-preview-item">
+                          <img 
+                            src={src} 
+                            alt={`Preview ${idx+1}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            className="remove-image-btn"
+                            title="Remove image"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

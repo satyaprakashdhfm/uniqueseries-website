@@ -76,29 +76,16 @@ const Navbar = () => {
             <img src="/assets/website_images/logo.png" alt="uniqueseries logo" style={{height: '48px', width: 'auto', display: 'block'}} />
           </Link>
 
-          {/* Mobile actions - always visible */}
+          {/* Mobile actions - only cart when logged in */}
           <div className="mobile-persistent-actions">
-            <Link to="/cart" className="cart-link mobile-cart">
-              <div className="cart-icon" style={{fontSize: '1.4rem', lineHeight: 1}}>
-                🛍️
-                {getCartItemsCount() > 0 && (
-                  <span className="cart-count">{getCartItemsCount()}</span>
-                )}
-              </div>
-            </Link>
-            {!isLoggedIn ? (
-              <Link to="/login" className="mobile-auth-link">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="auth-icon">
-                  <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" fill="#e0f2fe" />
-                  <path d="M12 13C8.13401 13 5 16.134 5 20V21H19V20C19 16.134 15.866 13 12 13Z" fill="#e0f2fe" />
-                </svg>
-              </Link>
-            ) : (
-              <Link to="/account" className="mobile-auth-link">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="auth-icon">
-                  <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" fill="#e0f2fe" />
-                  <path d="M12 13C8.13401 13 5 16.134 5 20V21H19V20C19 16.134 15.866 13 12 13Z" fill="#e0f2fe" />
-                </svg>
+            {isLoggedIn && (
+              <Link to="/cart" className="cart-link mobile-cart">
+                <div className="cart-icon" style={{fontSize: '1.4rem', lineHeight: 1}}>
+                  🛍️
+                  {getCartItemsCount() > 0 && (
+                    <span className="cart-count">{getCartItemsCount()}</span>
+                  )}
+                </div>
               </Link>
             )}
           </div>
@@ -178,6 +165,14 @@ const Navbar = () => {
                 <button onClick={handleLogout} className="nav-link logout-btn">
                   Logout
                 </button>
+                <Link to="/cart" className="cart-link">
+                  <div className="cart-icon" style={{fontSize: '1.5rem', lineHeight: 1}}>
+                    🛍️
+                    {getCartItemsCount() > 0 && (
+                      <span className="cart-count">{getCartItemsCount()}</span>
+                    )}
+                  </div>
+                </Link>
               </>
             ) : (
               <>
@@ -185,14 +180,6 @@ const Navbar = () => {
                 <Link to="/signup" className="nav-btn">Signup</Link>
               </>
             )}
-            <Link to="/cart" className="cart-link">
-              <div className="cart-icon" style={{fontSize: '1.5rem', lineHeight: 1}}>
-                🛍️
-                {getCartItemsCount() > 0 && (
-                  <span className="cart-count">{getCartItemsCount()}</span>
-                )}
-              </div>
-            </Link>
           </div>
         </div>
 
@@ -263,12 +250,27 @@ const Navbar = () => {
             <Link to="/contact" className="nav-link" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
             <div className="nav-actions-mobile">
               {isLoggedIn ? (
-                <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="nav-link logout-btn">
-                  Logout
-                </button>
+                <>
+                  <Link to="/account" className="nav-link mobile-account-link" onClick={() => setMobileMenuOpen(false)}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginRight: '0.5rem'}}>
+                      <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" fill="#2c3e50" />
+                      <path d="M12 13C8.13401 13 5 16.134 5 20V21H19V20C19 16.134 15.866 13 12 13Z" fill="#2c3e50" />
+                    </svg>
+                    Account
+                  </Link>
+                  <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="nav-link logout-btn">
+                    Logout
+                  </button>
+                </>
               ) : (
                 <>
-                  <Link to="/login" className="nav-btn" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                  <Link to="/login" className="nav-link mobile-login-link" onClick={() => setMobileMenuOpen(false)}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginRight: '0.5rem'}}>
+                      <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" fill="#2c3e50" />
+                      <path d="M12 13C8.13401 13 5 16.134 5 20V21H19V20C19 16.134 15.866 13 12 13Z" fill="#2c3e50" />
+                    </svg>
+                    Login
+                  </Link>
                   <Link to="/signup" className="nav-btn" onClick={() => setMobileMenuOpen(false)}>Signup</Link>
                 </>
               )}

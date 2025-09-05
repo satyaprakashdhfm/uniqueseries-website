@@ -523,6 +523,11 @@
   .nav-actions-mobile .cart-link {
     align-self: flex-start;
   }
+  .nav-actions-mobile .mobile-account-link,
+  .nav-actions-mobile .mobile-login-link {
+    display: flex;
+    align-items: center;
+  }
 
   .mobile-nav-close {
     position: absolute;
