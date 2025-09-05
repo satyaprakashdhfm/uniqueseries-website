@@ -4,7 +4,8 @@ const {
   getOrderById, 
   getUserOrders,
   getUpiPaymentDetails,
-  verifyUpiPayment
+  verifyUpiPayment,
+  confirmPayment
 } = require('../controllers/orderController');
 const { protect, optionalAuth } = require('../middleware/authMiddleware');
 const { orderValidator, upiPaymentValidator } = require('../utils/validators');
@@ -47,5 +48,10 @@ router.post(
   validateRequest, 
   verifyUpiPayment
 );
+
+// @route   POST /api/orders/:orderNumber/confirm-payment
+// @desc    Confirm payment and send notifications
+// @access  Public (can be called by payment gateway webhook)
+router.post('/:orderNumber/confirm-payment', confirmPayment);
 
 module.exports = router;

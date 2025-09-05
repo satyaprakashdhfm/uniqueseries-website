@@ -48,6 +48,13 @@ const adminApi = axios.create({
   timeout: 30000
 });
 
+// Admin auth axios instance (for login/register - no token required)
+const adminAuthApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000
+});
+
 adminApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('adminToken');
@@ -220,7 +227,13 @@ export const contactAPI = {
 // Admin API (auth only)
 export const adminAPI = {
   login: async (email, password) => {
-    const res = await api.post('/admin/login', { email, password });
+    // Use adminAuthApi for login (no token needed, no redirect on 401)
+    const res = await adminAuthApi.post('/admin/login', { email, password });
+    return res.data;
+  },
+  register: async (email, name, password) => {
+    // Use adminAuthApi for registration (no token needed, no redirect on 401)
+    const res = await adminAuthApi.post('/admin/register', { email, name, password });
     return res.data;
   }
 };

@@ -1,6 +1,8 @@
 const { Cart, Order, OrderItem, Product, Payment, User, Coupon } = require('../models');
 const { sequelize } = require('../config/db');
 const { Op } = require('sequelize');
+const emailService = require('../config/email');
+const whatsAppService = require('../config/whatsapp');
 
 // Helpers
 const slugifySafe = (val, fallback = '') => {
@@ -72,7 +74,7 @@ exports.createOrder = async (req,res)=>{
     const payment_id = 'PAY'+Date.now()+Math.floor(Math.random()*1000);
     const upi_reference_id = 'UPI'+Date.now();
     // DEV: auto-complete payment to avoid manual verification
-    await Payment.create({ payment_id, user_email:email, payment_method, payment_status:'completed', payment_amount:total_amount, upi_reference_id }, { transaction:t });
+    const paymentRecord = await Payment.create({ payment_id, user_email:email, payment_method, payment_status:'completed', payment_amount:total_amount, upi_reference_id }, { transaction:t });
 
     // order row (aggregate)
     const order_number = generateOrderNumber();
@@ -96,6 +98,39 @@ exports.createOrder = async (req,res)=>{
     }
 
     await t.commit();
+    
+    // Send order confirmation notifications ONLY if payment is successful
+    if (paymentRecord.payment_status === 'completed') {
+      try {
+        const orderDetails = {
+          orderId: order_number,
+          customerName: customer_name,
+          totalAmount: total_amount,
+          orderDate: new Date(),
+          items: cartRows.map(row => ({
+            productName: row.product_name,
+            quantity: row.quantity,
+            price: Number(row.unit_price) * Number(row.quantity)
+          }))
+        };
+
+        // Send email notification
+        await emailService.sendOrderConfirmationEmail(email, orderDetails);
+        console.log(`✅ Order confirmation email sent to ${email}`);
+        
+        // Send WhatsApp notification if phone number provided and WhatsApp is ready
+        if (customer_phone && whatsAppService.isClientReady()) {
+          await whatsAppService.sendOrderConfirmation(customer_phone, orderDetails);
+          console.log(`✅ Order confirmation WhatsApp sent to ${customer_phone}`);
+        }
+      } catch (notificationError) {
+        console.error('Failed to send order confirmation notifications:', notificationError);
+        // Don't fail the order creation if notification fails
+      }
+    } else {
+      console.log(`⏳ Payment not completed yet. Notifications will be sent when payment is confirmed.`);
+    }
+    
     res.status(201).json({ order_number, total_amount, payment_id, upi_reference_id, subtotal, discount, shipping_fee });
   }catch(err){
     await t.rollback();
@@ -159,6 +194,88 @@ exports.getUserOrders = async (req,res)=>{
 // GET /api/orders/:orderNumber/payment
 exports.getUpiPaymentDetails = async (req,res)=>{
   try{ const { orderNumber } = req.params; const order = await Order.findOne({ where:{ order_number:orderNumber } }); if(!order) return res.status(404).json({ message:'Order not found' }); const payment = await Payment.findOne({ where:{ payment_id: order.payment_id } }); if(!payment) return res.status(404).json({ message:'Payment not found' }); res.json({ merchantVpa: process.env.UPI_MERCHANT_VPA || 'merchant@bank', merchantName:'Currency Gift Store', amount: payment.payment_amount, referenceId: payment.upi_reference_id, currency:'INR' }); }catch(err){ console.error(err); res.status(500).json({ message:'Server error' }); }
+};
+
+// POST /api/orders/:orderNumber/confirm-payment
+exports.confirmPayment = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    const { payment_status, transaction_id } = req.body;
+
+    // Find the order
+    const order = await Order.findOne({ 
+      where: { order_number: orderNumber },
+      include: [{ model: Payment, as: 'payment' }]
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Update payment status
+    const payment = await Payment.findOne({ where: { payment_id: order.payment_id } });
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    const previousStatus = payment.payment_status;
+    payment.payment_status = payment_status;
+    if (transaction_id) {
+      payment.upi_reference_id = transaction_id;
+    }
+    await payment.save();
+
+    // If payment is now successful and wasn't before, send notifications
+    if (payment_status === 'completed' && previousStatus !== 'completed') {
+      try {
+        // Get order items for notification
+        const orderItems = await OrderItem.findAll({ where: { order_number: orderNumber } });
+        
+        const orderDetails = {
+          orderId: order.order_number,
+          customerName: order.customer_name,
+          totalAmount: order.total_amount,
+          orderDate: order.created_at,
+          items: orderItems.map(item => ({
+            productName: item.product_name,
+            quantity: item.quantity,
+            price: item.total_price
+          }))
+        };
+
+        // Send email notification
+        await emailService.sendOrderConfirmationEmail(order.customer_email, orderDetails);
+        console.log(`✅ Payment confirmed - Order confirmation email sent to ${order.customer_email}`);
+        
+        // Send WhatsApp notification if phone number provided and WhatsApp is ready
+        if (order.customer_phone && whatsAppService.isClientReady()) {
+          await whatsAppService.sendOrderConfirmation(order.customer_phone, orderDetails);
+          console.log(`✅ Payment confirmed - Order confirmation WhatsApp sent to ${order.customer_phone}`);
+        }
+
+        // Update order status to confirmed if it wasn't already
+        if (order.order_status !== 'confirmed') {
+          order.order_status = 'confirmed';
+          await order.save();
+        }
+
+      } catch (notificationError) {
+        console.error('Failed to send payment confirmation notifications:', notificationError);
+        // Don't fail the payment confirmation if notification fails
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Payment status updated successfully',
+      payment_status: payment.payment_status,
+      order_status: order.order_status
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
 
 // POST /api/orders/verify-payment

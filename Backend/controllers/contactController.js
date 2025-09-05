@@ -1,5 +1,6 @@
 const { ContactMessage, AdminUser } = require('../models');
 const { Op } = require('sequelize');
+const emailService = require('../config/email');
 
 // POST /api/contact
 exports.createMessage = async (req, res) => {
@@ -20,6 +21,21 @@ exports.createMessage = async (req, res) => {
       subject,
       message
     });
+
+    // Send notification email to admin
+    try {
+      await emailService.sendContactNotification({
+        name: finalName,
+        email: finalEmail,
+        phone: phone || null,
+        subject,
+        message
+      });
+      console.log(`✅ Contact form notification sent to admin`);
+    } catch (notificationError) {
+      console.error('Failed to send contact notification:', notificationError);
+      // Don't fail the contact form submission if notification fails
+    }
 
     res.status(201).json(created);
   } catch (err) {

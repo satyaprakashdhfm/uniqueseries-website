@@ -30,7 +30,11 @@
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.32.1",
     "stripe": "^12.9.0",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "nodemailer": "^6.9.4",
+    "whatsapp-web.js": "^1.22.2",
+    "qrcode-terminal": "^0.12.0",
+    "qrcode": "^1.5.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"

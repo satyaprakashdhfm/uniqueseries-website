@@ -23,6 +23,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import RefundPolicy from './pages/RefundPolicy';
 import ShippingPolicy from './pages/ShippingPolicy';
 import AdminLoginPage from './pages/admin/AdminLogin';
+import AdminSignupPage from './pages/admin/AdminSignup';
 import AdminDashboardPage from './pages/admin/AdminDashboard';
 import './App.css';
 
@@ -53,6 +54,7 @@ function App() {
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/shipping-policy" element={<ShippingPolicy />} />
                 <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route path="/admin/signup" element={<AdminSignupPage />} />
                 <Route path="/admin" element={<AdminRequireGuard><AdminDashboardPage /></AdminRequireGuard>} />
               </Routes>
             </div>

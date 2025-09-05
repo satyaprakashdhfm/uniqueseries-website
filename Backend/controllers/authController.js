@@ -1,6 +1,8 @@
 const { User } = require('../models');
 const { generateToken } = require('../config/auth');
 const bcrypt = require('bcryptjs');
+const emailService = require('../config/email');
+const whatsAppService = require('../config/whatsapp');
 
 // Register a new user
 exports.registerUser = async (req, res) => {
@@ -24,6 +26,22 @@ exports.registerUser = async (req, res) => {
     });
 
     if (user) {
+      // Send welcome notifications
+      try {
+        // Send welcome email
+        await emailService.sendWelcomeEmail(user.email, user.name);
+        console.log(`✅ Welcome email sent to ${user.email}`);
+        
+        // Send welcome WhatsApp message if phone provided and WhatsApp is ready
+        if (user.phone && whatsAppService.isClientReady()) {
+          await whatsAppService.sendWelcomeMessage(user.phone, user.name);
+          console.log(`✅ Welcome WhatsApp sent to ${user.phone}`);
+        }
+      } catch (notificationError) {
+        console.error('Failed to send welcome notifications:', notificationError);
+        // Don't fail user registration if notification fails
+      }
+
       res.status(201).json({
         name: user.name,
         email: user.email,

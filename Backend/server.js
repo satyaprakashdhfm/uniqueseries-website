@@ -46,6 +46,7 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 // Simple root route
 app.get('/', (req, res) => {
   res.json({
@@ -59,7 +60,8 @@ app.get('/', (req, res) => {
       reviews: '/api/reviews',
       wishlist: '/api/wishlist',
       contact: '/api/contact',
-      admin: '/api/admin'
+      admin: '/api/admin',
+      notifications: '/api/notifications'
     }
   });
 });
@@ -76,6 +78,21 @@ app.listen(PORT, () => {
   try {
     await sequelize.authenticate();
     console.log('Database connection verified - using existing tables');
+    
+    // Initialize WhatsApp service (optional - can be done via API)
+    if (process.env.AUTO_INIT_WHATSAPP === 'true') {
+      try {
+        const whatsAppService = require('./config/whatsapp');
+        console.log('🔄 Initializing WhatsApp service...');
+        await whatsAppService.initialize();
+      } catch (whatsappError) {
+        console.log('⚠️  WhatsApp initialization skipped:', whatsappError.message);
+        console.log('💡 You can initialize WhatsApp later via /api/notifications/whatsapp/initialize');
+      }
+    } else {
+      console.log('💡 WhatsApp auto-initialization disabled. Use /api/notifications/whatsapp/initialize to start WhatsApp service.');
+    }
+    
   } catch (error) {
     console.error('Database connection error:', error);
   }
