@@ -3,17 +3,25 @@ import axios from 'axios';
 // Create axios instance with base configuration
 const API_BASE_URL = process.env.REACT_APP_API_URL || (
   process.env.NODE_ENV === 'production'
-    ? 'https://your-production-domain.com/api'
+    ? '/api' // Use relative path instead of hardcoded domain
     : '/api'
 );
+
+// Different timeouts for different request types
+const TIMEOUTS = {
+  DEFAULT: 15000,  // 15 seconds for most operations
+  UPLOAD: 60000,   // 60 seconds for uploads
+  DOWNLOAD: 30000  // 30 seconds for downloads
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest' // Helps identify AJAX requests
   },
   // Prevent indefinite hanging requests
-  timeout: 30000
+  timeout: TIMEOUTS.DEFAULT
 });
 
 // Request interceptor to add auth token
@@ -32,11 +40,45 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    // Handle canceled requests gracefully
+    if (axios.isCancel(error)) {
+      console.log('Request canceled:', error.message);
+      return Promise.reject(error);
     }
+    
+    // Handle unauthorized errors (expired token or invalid token)
+    if (error.response?.status === 401) {
+      // Check if this is a token expiration
+      const errorCode = error.response?.data?.code;
+      
+      if (errorCode === 'token_expired') {
+        // Could implement token refresh here
+        console.log('Token expired, should refresh');
+      }
+      
+      // Clear auth data and redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      
+      // Only redirect if not already on login page to prevent redirect loops
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login?session=expired';
+      }
+    }
+    
+    // Enhance error object with additional info for better handling
+    if (error.response) {
+      error.isServerError = error.response.status >= 500;
+      error.isClientError = error.response.status >= 400 && error.response.status < 500;
+      error.errorCode = error.response.data?.code;
+      error.errorMessage = error.response.data?.message || error.message;
+    } else if (error.request) {
+      // Request made but no response received (network error)
+      error.isNetworkError = true;
+      error.errorMessage = 'Network error - please check your connection';
+    }
+    
     return Promise.reject(error);
   }
 );

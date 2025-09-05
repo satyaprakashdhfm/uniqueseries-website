@@ -16,31 +16,68 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // Helper function to check if token is expired
+  const isTokenExpired = (token) => {
+    if (!token) return true;
+    try {
+      // Get payload from token (second part between dots)
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      // Check if expiration time is past current time
+      return payload.exp * 1000 < Date.now();
+    } catch (e) {
+      return true;
+    }
+  };
+
   useEffect(() => {
     // Check if user is logged in on app start
     const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
     const userData = localStorage.getItem('user');
     
-    if (token && userData) {
+    // First check if token is valid and not expired
+    if (token && !isTokenExpired(token) && userData) {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
         setIsLoggedIn(true);
       } catch (error) {
         console.error('Error parsing user data:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearAuthData();
       }
+    } else if (refreshToken && userData) {
+      // Token expired but we have refresh token - could implement token refresh here
+      // For now, just clear data and require re-login
+      clearAuthData();
+    } else {
+      clearAuthData();
     }
     setLoading(false);
   }, []);
+  
+  // Helper to clear auth data
+  const clearAuthData = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    setUser(null);
+    setIsLoggedIn(false);
+  };
 
   const login = async (email, password) => {
     try {
       const response = await authAPI.login(email, password);
-      const { token, ...userData } = response;
+      const { token, refreshToken, ...userData } = response;
+      
+      // Validate token before storing
+      if (!token) {
+        throw new Error('Invalid token received from server');
+      }
       
       localStorage.setItem('token', token);
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
+      }
       localStorage.setItem('user', JSON.stringify(userData));
       
       setUser(userData);

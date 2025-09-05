@@ -12,11 +12,11 @@ if (hasDatabaseUrl) {
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
     protocol: 'postgres',
-    logging: true, // Enable logging temporarily for debugging
+    logging: isProduction ? false : true, // Disable logging in production
     pool: {
       max: 5,
       min: 0,
-      acquire: 60000, // Increased timeout
+      acquire: 30000, // Reduced timeout for faster error detection
       idle: 10000
     },
     dialectOptions: {
@@ -24,15 +24,15 @@ if (hasDatabaseUrl) {
         require: true,
         rejectUnauthorized: false
       },
-      connectTimeout: 60000 // Increased timeout
+      connectTimeout: 30000 // Reduced timeout for faster error detection
     }
   });
 } else {
   // Local/dev fallback using discrete envs
   sequelize = new Sequelize(
-    process.env.DB_NAME || 'currency_gift_store_satya3479',
-    process.env.DB_USER || 'satya3479',
-    process.env.DB_PASSWORD || '1234',
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
     {
       host: process.env.DB_HOST || 'localhost',
       dialect: 'postgres',

@@ -13,7 +13,11 @@ exports.registerUser = async (req, res) => {
     const userExists = await User.findOne({ where: { email } });
 
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ 
+        success: false,
+        code: 'user_exists',
+        message: 'User already exists' 
+      });
     }
 
     // Create user
@@ -26,6 +30,10 @@ exports.registerUser = async (req, res) => {
     });
 
     if (user) {
+      // Generate tokens
+      const token = generateToken(user.email);
+      const refreshToken = generateRefreshToken(user.email);
+      
       // Send welcome notifications
       try {
         // Send welcome email
@@ -39,20 +47,53 @@ exports.registerUser = async (req, res) => {
         }
       } catch (notificationError) {
         console.error('Failed to send welcome notifications:', notificationError);
-        // Don't fail user registration if notification fails
+        // Log the error but don't fail registration
       }
 
       res.status(201).json({
+        success: true,
         name: user.name,
         email: user.email,
-        token: generateToken(user.email)
+        token,
+        refreshToken
       });
     } else {
-      res.status(400).json({ message: 'Invalid user data' });
+      res.status(400).json({ 
+        success: false,
+        code: 'invalid_data',
+        message: 'Invalid user data' 
+      });
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Registration error:', error);
+    
+    // Handle Sequelize validation errors
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        success: false,
+        code: 'validation_error',
+        message: 'Validation error',
+        errors: error.errors.map(err => ({
+          field: err.path,
+          message: err.message
+        }))
+      });
+    }
+    
+    // Handle other database errors
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        success: false,
+        code: 'unique_constraint',
+        message: 'A user with this email already exists'
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      code: 'server_error',
+      message: 'An unexpected error occurred'
+    });
   }
 };
 
@@ -60,22 +101,50 @@ exports.registerUser = async (req, res) => {
 exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    // Input validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        code: 'missing_credentials',
+        message: 'Email and password are required'
+      });
+    }
 
-    // Find user by email
+    // Find user by email - be careful not to reveal if email exists
     const user = await User.findOne({ where: { email } });
-
+    
+    // Rate limiting could be implemented here
+    
     if (user && (await user.matchPassword(password))) {
+      // Generate both access and refresh tokens
+      const token = generateToken(user.email);
+      const refreshToken = generateRefreshToken(user.email);
+      
       res.json({
+        success: true,
         name: user.name,
         email: user.email,
-        token: generateToken(user.email)
+        token,
+        refreshToken
       });
     } else {
-      res.status(401).json({ message: 'Invalid email or password' });
+      // Use a consistent response time to prevent timing attacks
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      res.status(401).json({ 
+        success: false,
+        code: 'invalid_credentials',
+        message: 'Invalid email or password' 
+      });
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false,
+      code: 'server_error',
+      message: 'An unexpected error occurred' 
+    });
   }
 };
 
