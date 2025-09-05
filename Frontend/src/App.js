@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
 import ScrollToTop from './components/ScrollToTop';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -33,27 +34,30 @@ function App() {
         <CartProvider>
           <div className="App">
             {!isAdminRoute && <Navbar />}
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/products/currency-notes" element={<CurrencyNotes />} />
-              <Route path="/products/framed-notes" element={<FramedNotes />} />
-              <Route path="/products/resin-frames" element={<ResinFrames />} />
-              <Route path="/products/zodiac-coins" element={<ZodiacCoins />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/payment" element={<Payment />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/account" element={<Account />} />
-              <Route path="/terms-and-conditions" element={<Terms />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/refund-policy" element={<RefundPolicy />} />
-              <Route path="/shipping-policy" element={<ShippingPolicy />} />
-              <Route path="/admin/login" element={<AdminLoginPage />} />
-              <Route path="/admin" element={<AdminRequireGuard><AdminDashboardPage /></AdminRequireGuard>} />
-            </Routes>
+            <div className="content-wrapper">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/products/currency-notes" element={<CurrencyNotes />} />
+                <Route path="/products/framed-notes" element={<FramedNotes />} />
+                <Route path="/products/resin-frames" element={<ResinFrames />} />
+                <Route path="/products/zodiac-coins" element={<ZodiacCoins />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/payment" element={<Payment />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/account" element={<Account />} />
+                <Route path="/terms-and-conditions" element={<Terms />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/refund-policy" element={<RefundPolicy />} />
+                <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route path="/admin" element={<AdminRequireGuard><AdminDashboardPage /></AdminRequireGuard>} />
+              </Routes>
+            </div>
             {!isAdminRoute && <ScrollToTop />}
+            {!isAdminRoute && <Footer />}
           </div>
         </CartProvider>
       </AuthProvider>
