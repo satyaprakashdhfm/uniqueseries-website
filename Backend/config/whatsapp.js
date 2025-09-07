@@ -9,7 +9,7 @@ class WhatsAppService {
     this.qrGenerated = false;
     this.currentQRCode = null;
     this.qrCallbacks = [];
-    this.adminPhone = '919381502998'; // Your WhatsApp number
+    this.adminPhone = '919392464563'; // Your WhatsApp number
   }
 
   // Initialize WhatsApp client
@@ -42,7 +42,7 @@ class WhatsAppService {
           // Also show in console for fallback
           if (!this.qrGenerated) {
             console.log('\n🔄 WhatsApp QR Code generated');
-            console.log('📱 Open WhatsApp on phone number: 9381502998');
+            console.log('📱 Open WhatsApp on phone number: 9392464563');
             console.log('📷 Tap "Linked Devices" and then "Link a Device"');
             console.log('📸 Scan the QR code in admin panel\n');
             
@@ -62,13 +62,13 @@ class WhatsAppService {
       });
 
       this.client.on('ready', () => {
-        console.log('✅ WhatsApp client is ready for number: 9381502998');
+        console.log('✅ WhatsApp client is ready for number: 9392464563');
         this.isReady = true;
         this.currentQRCode = null; // Clear QR code when connected
       });
 
       this.client.on('authenticated', () => {
-        console.log('🔐 WhatsApp client authenticated successfully for number: 9381502998');
+        console.log('🔐 WhatsApp client authenticated successfully for number: 9392464563');
       });
 
       this.client.on('auth_failure', (msg) => {

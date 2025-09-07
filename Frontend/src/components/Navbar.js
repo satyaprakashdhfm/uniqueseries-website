@@ -271,7 +271,15 @@ const Navbar = () => {
                     </svg>
                     Login
                   </Link>
-                  <Link to="/signup" className="nav-btn" onClick={() => setMobileMenuOpen(false)}>Signup</Link>
+                  <Link to="/signup" className="nav-link mobile-signup-link" onClick={() => setMobileMenuOpen(false)}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginRight: '0.5rem'}}>
+                      <path d="M12 2C13.1046 2 14 2.89543 14 4V10C14 11.1046 13.1046 12 12 12C10.8954 12 10 11.1046 10 10V4C10 2.89543 10.8954 2 12 2Z" fill="#2c3e50"/>
+                      <path d="M12 14C8.13401 14 5 17.134 5 21V22H19V21C19 17.134 15.866 14 12 14Z" fill="#2c3e50"/>
+                      <path d="M16 8H20V10H16V8Z" fill="#2c3e50"/>
+                      <path d="M18 6V12H20V6H18Z" fill="#2c3e50"/>
+                    </svg>
+                    Signup
+                  </Link>
                 </>
               )}
             </div>

@@ -524,7 +524,8 @@
     align-self: flex-start;
   }
   .nav-actions-mobile .mobile-account-link,
-  .nav-actions-mobile .mobile-login-link {
+  .nav-actions-mobile .mobile-login-link,
+  .nav-actions-mobile .mobile-signup-link {
     display: flex;
     align-items: center;
   }

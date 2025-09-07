@@ -62,11 +62,13 @@ const WhatsAppManager = () => {
         loading: false
       }));
 
-      // If not ready and no QR code, auto-refresh
+      // If not ready and no QR code, auto-refresh after 5 seconds (reduced frequency)
       if (!data.isReady && !data.qrCode) {
         setTimeout(() => {
-          getQRCode();
-        }, 2000);
+          if (!whatsappStatus.loading) {
+            getQRCode();
+          }
+        }, 5000);
       }
     } catch (error) {
       console.error('Error getting QR code:', error);
@@ -180,19 +182,19 @@ const WhatsAppManager = () => {
   useEffect(() => {
     checkStatus();
     
-    // Auto-refresh status every 10 seconds when not connected
+    // Auto-refresh status every 30 seconds when not connected (reduced from 10)
     const statusInterval = setInterval(() => {
-      if (!whatsappStatus.isReady) {
+      if (!whatsappStatus.isReady && !whatsappStatus.loading) {
         checkStatus();
       }
-    }, 10000);
+    }, 30000);
     
-    // Auto-refresh QR code every 15 seconds when QR is visible
+    // Auto-refresh QR code every 60 seconds when QR is visible (reduced from 15)
     const qrInterval = setInterval(() => {
-      if (!whatsappStatus.isReady && whatsappStatus.qrCode) {
+      if (!whatsappStatus.isReady && whatsappStatus.qrCode && !whatsappStatus.loading) {
         getQRCode();
       }
-    }, 15000);
+    }, 60000);
 
     return () => {
       clearInterval(statusInterval);

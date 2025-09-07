@@ -1,5 +1,5 @@
 const { User } = require('../models');
-const { generateToken } = require('../config/auth');
+const { generateToken, generateRefreshToken } = require('../config/auth');
 const bcrypt = require('bcryptjs');
 const emailService = require('../config/email');
 const whatsAppService = require('../config/whatsapp');
