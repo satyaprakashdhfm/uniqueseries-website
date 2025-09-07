@@ -74,14 +74,23 @@ const OrdersTab = () => {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const url = item.custom_photo_url;
-      if (isCloudinaryFolderUrl(url)) {
-        try {
-          const folder = folderFromCloudinaryUrl(url);
-          const imgs = await api.get(`/api/upload/folder-images?folder=${encodeURIComponent(folder)}`);
-          const key = `${orderNumber}:${i}`;
-          setImagesMap(prev => ({ ...prev, [key]: imgs.data?.urls || [] }));
-        } catch (e) {
-          console.warn('failed to load folder images', e);
+      if (url) {
+        let folder = '';
+        // Check if it's a folder path (not a direct HTTP URL)
+        if (!isHttp(url)) {
+          folder = url;
+        } else if (isCloudinaryFolderUrl(url)) {
+          folder = folderFromCloudinaryUrl(url);
+        }
+        
+        if (folder) {
+          try {
+            const imgs = await api.get('/upload/list', { params: { folder } });
+            const key = `${orderNumber}:${i}`;
+            setImagesMap(prev => ({ ...prev, [key]: imgs.data?.images?.map(x => x.imageUrl).filter(Boolean) || [] }));
+          } catch (e) {
+            console.warn('failed to load folder images for folder:', folder, e);
+          }
         }
       }
     }
@@ -177,15 +186,35 @@ const OrdersTab = () => {
                                     {item.custom_photo_url && (
                                       <div className="admin-custom-photos">
                                         <p><strong>Custom Photos:</strong></p>
-                                        {isCloudinaryFolderUrl(item.custom_photo_url) ? (
-                                          <div className="admin-photo-grid">
-                                            {(imagesMap[`${o.order_number}:${idx}`] || []).map((imgUrl, imgIdx) => (
-                                              <img key={imgIdx} src={imgUrl} alt={`Custom ${imgIdx+1}`} className="admin-custom-photo" />
-                                            ))}
-                                          </div>
-                                        ) : (
-                                          <img src={item.custom_photo_url} alt="Custom" className="admin-custom-photo" />
-                                        )}
+                                        {(() => {
+                                          const val = item.custom_photo_url;
+                                          let directImgs = [];
+                                          let folderKey = '';
+                                          
+                                          if (!isHttp(val)) {
+                                            // It's a folder path like "currency-gift/users/..."
+                                            folderKey = `${o.order_number}:${idx}`;
+                                          } else if (isCloudinaryFolderUrl(val)) {
+                                            // It's a Cloudinary folder URL
+                                            folderKey = `${o.order_number}:${idx}`;
+                                          } else {
+                                            // It's a direct image URL
+                                            directImgs = [val];
+                                          }
+                                          
+                                          const imgsFromFolder = folderKey ? (imagesMap[folderKey] || []) : [];
+                                          const allImgs = [...directImgs, ...imgsFromFolder];
+                                          
+                                          if (allImgs.length === 0) return null;
+                                          
+                                          return (
+                                            <div className="admin-photo-grid">
+                                              {allImgs.map((imgUrl, imgIdx) => (
+                                                <img key={imgIdx} src={imgUrl} alt={`Custom ${imgIdx+1}`} className="admin-custom-photo" />
+                                              ))}
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
                                     )}
                                   </div>

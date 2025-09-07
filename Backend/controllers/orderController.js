@@ -1,8 +1,61 @@
 const { Cart, Order, OrderItem, Product, Payment, User, Coupon } = require('../models');
 const { sequelize } = require('../config/db');
 const { Op } = require('sequelize');
-const emailService = require('../config/email');
 const whatsAppService = require('../config/whatsapp');
+const emailService = require('../config/email');
+const { cloudinary } = require('../config/cloudinary');
+
+// Helper function to get images from a folder
+const getImagesFromFolder = async (folder) => {
+  try {
+    console.log('📁 Attempting to fetch from Cloudinary folder:', folder);
+    
+    const hasCloudinary = Boolean(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+    console.log('🔧 Cloudinary configured:', hasCloudinary);
+    
+    if (!hasCloudinary) {
+      console.log('❌ Cloudinary not configured');
+      return [];
+    }
+    
+    console.log('🌩️ Making Cloudinary API call with params:', {
+      type: 'upload',
+      prefix: `${folder}/`,
+      max_results: 200
+    });
+    
+    const result = await cloudinary.api.resources({ 
+      type: 'upload', 
+      prefix: `${folder}/`, 
+      max_results: 200 
+    });
+    
+    console.log('📋 Raw Cloudinary result:', JSON.stringify(result, null, 2));
+    
+    if (!result) {
+      console.log('❌ Cloudinary result is null/undefined');
+      return [];
+    }
+    
+    if (!result.resources) {
+      console.log('❌ No resources property in Cloudinary result');
+      console.log('📋 Available properties:', Object.keys(result));
+      return [];
+    }
+    
+    console.log('📷 Found resources count:', result.resources.length);
+    
+    const imageUrls = result.resources.map(r => r.secure_url);
+    console.log('📷 Extracted image URLs:', imageUrls);
+    
+    return imageUrls;
+  } catch (error) {
+    console.error('❌ Error fetching folder images:', error);
+    console.error('❌ Error details:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    return [];
+  }
+};
 
 // Helpers
 const slugifySafe = (val, fallback = '') => {
@@ -102,11 +155,49 @@ exports.createOrder = async (req,res)=>{
     // Send order confirmation notifications ONLY if payment is successful
     if (paymentRecord.payment_status === 'completed') {
       try {
+        // Collect all custom images from cart items
+        const customImages = [];
+        console.log('🔍 Collecting custom images from cart items...');
+        
+        for (const row of cartRows) {
+          if (row.custom_photo_url) {
+            const photoUrl = row.custom_photo_url;
+            console.log('📸 Found custom photo URL:', photoUrl);
+            
+            // If it's a folder URL, get all images from the folder
+            if (photoUrl && !photoUrl.startsWith('http')) {
+              // It's a folder path, get images from Cloudinary
+              try {
+                console.log('📁 Fetching images from folder:', photoUrl);
+                const folderImages = await getImagesFromFolder(photoUrl);
+                console.log('📷 Found folder images:', folderImages.length);
+                customImages.push(...folderImages);
+              } catch (e) {
+                console.log('❌ Could not fetch folder images for notifications:', e);
+              }
+            } else if (photoUrl && photoUrl.startsWith('http')) {
+              // Direct image URL
+              console.log('🔗 Adding direct image URL');
+              customImages.push(photoUrl);
+            }
+          }
+        }
+
+        console.log('🎯 Total custom images collected:', customImages.length, customImages);
+
+        console.log('📋 Order details being sent to WhatsApp:', {
+          orderId: order_number,
+          customerName: customer_name,
+          customImagesCount: customImages.length,
+          customImages: customImages
+        });
+
         const orderDetails = {
           orderId: order_number,
           customerName: customer_name,
           totalAmount: total_amount,
           orderDate: new Date(),
+          customImages: customImages.length > 0 ? customImages : null,
           items: cartRows.map(row => ({
             productName: row.product_name,
             quantity: row.quantity,
@@ -231,11 +322,33 @@ exports.confirmPayment = async (req, res) => {
         // Get order items for notification
         const orderItems = await OrderItem.findAll({ where: { order_number: orderNumber } });
         
+        // Collect all custom images from order items
+        const customImages = [];
+        for (const item of orderItems) {
+          if (item.custom_photo_url) {
+            const photoUrl = item.custom_photo_url;
+            // If it's a folder URL, get all images from the folder
+            if (photoUrl && !photoUrl.startsWith('http')) {
+              // It's a folder path, get images from Cloudinary
+              try {
+                const folderImages = await getImagesFromFolder(photoUrl);
+                customImages.push(...folderImages);
+              } catch (e) {
+                console.log('Could not fetch folder images for notifications:', e);
+              }
+            } else if (photoUrl && photoUrl.startsWith('http')) {
+              // Direct image URL
+              customImages.push(photoUrl);
+            }
+          }
+        }
+        
         const orderDetails = {
           orderId: order.order_number,
           customerName: order.customer_name,
           totalAmount: order.total_amount,
           orderDate: order.created_at,
+          customImages: customImages.length > 0 ? customImages : null,
           items: orderItems.map(item => ({
             productName: item.product_name,
             quantity: item.quantity,

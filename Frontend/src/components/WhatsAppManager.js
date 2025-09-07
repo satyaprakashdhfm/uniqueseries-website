@@ -247,7 +247,7 @@ const WhatsAppManager = () => {
           <div className="qr-instructions">
             <p><strong>📋 Step-by-step Instructions:</strong></p>
             <ol>
-              <li>Open <strong>WhatsApp</strong> on your phone: <strong>9381502998</strong></li>
+              <li>Open <strong>WhatsApp</strong> on your phone: <strong>9392464563</strong></li>
               <li>Tap the <strong>three dots (⋮)</strong> in the top right corner</li>
               <li>Select <strong>"Linked Devices"</strong></li>
               <li>Tap <strong>"Link a Device"</strong></li>
@@ -255,7 +255,7 @@ const WhatsAppManager = () => {
               <li>Wait for connection confirmation</li>
             </ol>
             <p style={{color: '#666', fontSize: '14px', marginTop: '10px'}}>
-              ⏰ QR code expires in 20 seconds. It will auto-refresh if needed.
+              ⏰ QR code expires in 1 minute. It will auto-refresh if needed.
             </p>
           </div>
           

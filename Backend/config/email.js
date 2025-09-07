@@ -40,29 +40,58 @@ const sendEmail = async (to, subject, text, html = null) => {
 // Send order confirmation email
 const sendOrderConfirmationEmail = async (customerEmail, orderDetails) => {
   const subject = `Order Confirmation - Order #${orderDetails.orderId}`;
+  
+  // Build custom images section
+  let customImagesHtml = '';
+  if (orderDetails.customImages && orderDetails.customImages.length > 0) {
+    customImagesHtml = `
+      <h3>📸 Custom Images for Your Order:</h3>
+      <p>These are the images you uploaded for this order. Please review them carefully:</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
+        ${orderDetails.customImages.map((imageUrl, index) => `
+          <div style="text-align: center; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
+            <img src="${imageUrl}" alt="Custom Image ${index + 1}" style="max-width: 100%; height: 150px; object-fit: cover; border-radius: 4px;">
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #666;">Image ${index + 1} of ${orderDetails.customImages.length}</p>
+          </div>
+        `).join('')}
+      </div>
+      <p style="background: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
+        <strong>📋 Important:</strong> Please review these images carefully. If you need any changes or have concerns, 
+        please contact us immediately. We want to ensure your order is exactly what you expect!
+      </p>
+    `;
+  }
+  
   const html = `
-    <h2>Thank you for your order!</h2>
-    <p>Dear ${orderDetails.customerName},</p>
-    <p>Your order has been confirmed and is being processed.</p>
-    
-    <h3>Order Details:</h3>
-    <ul>
-      <li><strong>Order ID:</strong> ${orderDetails.orderId}</li>
-      <li><strong>Total Amount:</strong> ₹${orderDetails.totalAmount}</li>
-      <li><strong>Order Date:</strong> ${new Date(orderDetails.orderDate).toLocaleDateString()}</li>
-    </ul>
-    
-    <h3>Items Ordered:</h3>
-    <ul>
-      ${orderDetails.items.map(item => `
-        <li>${item.productName} - Quantity: ${item.quantity} - Price: ₹${item.price}</li>
-      `).join('')}
-    </ul>
-    
-    <p>We'll send you another email when your order ships.</p>
-    <p>Thank you for shopping with us!</p>
-    
-    <p>Best regards,<br>Currency Gift Store Team</p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">Thank you for your order! 🎉</h2>
+      <p>Dear ${orderDetails.customerName},</p>
+      <p>Your order has been confirmed and is being processed.</p>
+      
+      <h3 style="color: #333;">📋 Order Details:</h3>
+      <ul style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
+        <li><strong>Order ID:</strong> ${orderDetails.orderId}</li>
+        <li><strong>Total Amount:</strong> ₹${orderDetails.totalAmount}</li>
+        <li><strong>Order Date:</strong> ${new Date(orderDetails.orderDate).toLocaleDateString()}</li>
+      </ul>
+      
+      <h3 style="color: #333;">📦 Items Ordered:</h3>
+      <ul>
+        ${orderDetails.items.map(item => `
+          <li style="margin: 5px 0;">${item.productName} - Quantity: ${item.quantity} - Price: ₹${item.price}</li>
+        `).join('')}
+      </ul>
+      
+      ${customImagesHtml}
+      
+      <p>We'll send you another email when your order ships.</p>
+      <p style="margin-top: 30px;">Thank you for shopping with us!</p>
+      
+      <p style="margin-top: 20px; color: #666;">
+        Best regards,<br>
+        <strong>Currency Gift Store Team</strong>
+      </p>
+    </div>
   `;
 
   return await sendEmail(customerEmail, subject, '', html);

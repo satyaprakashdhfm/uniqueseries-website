@@ -1,6 +1,7 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
+const axios = require('axios');
 
 class WhatsAppService {
   constructor() {
@@ -111,6 +112,39 @@ class WhatsAppService {
     }
   }
 
+  // Send media message (image with caption)
+  async sendMediaMessage(phoneNumber, imageUrl, caption) {
+    try {
+      console.log('📱 Sending media message to:', phoneNumber);
+      console.log('📷 Image URL:', imageUrl);
+      console.log('📝 Caption:', caption);
+      
+      if (!this.isReady) {
+        throw new Error('WhatsApp client is not ready. Please scan the QR code first.');
+      }
+
+      // Format phone number
+      const formattedNumber = this.formatPhoneNumber(phoneNumber);
+      const chatId = `${formattedNumber}@c.us`;
+
+      console.log('📱 Formatted number:', formattedNumber);
+      console.log('💬 Chat ID:', chatId);
+
+      // Download and create MessageMedia from URL
+      console.log('⬇️ Creating MessageMedia from URL...');
+      const media = await MessageMedia.fromUrl(imageUrl);
+      console.log('✅ MessageMedia created successfully');
+      
+      const response = await this.client.sendMessage(chatId, media, { caption });
+      console.log(`✅ WhatsApp media message sent to ${phoneNumber}:`, response.id.id);
+      return { success: true, messageId: response.id.id };
+      
+    } catch (error) {
+      console.error('❌ Error sending WhatsApp media message:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Format phone number to WhatsApp format
   formatPhoneNumber(phoneNumber) {
     // Remove all non-digit characters
@@ -126,9 +160,19 @@ class WhatsAppService {
     return cleaned;
   }
 
-  // Send order confirmation WhatsApp message
+  // Send order confirmation WhatsApp message with images
   async sendOrderConfirmation(phoneNumber, orderDetails) {
-    const message = `🎉 *Order Confirmation* 
+    try {
+      console.log('📱 Starting WhatsApp order confirmation for:', phoneNumber);
+      console.log('📋 Order details received:', {
+        orderId: orderDetails.orderId,
+        customerName: orderDetails.customerName,
+        hasCustomImages: !!orderDetails.customImages,
+        imageCount: orderDetails.customImages ? orderDetails.customImages.length : 0
+      });
+
+      // First send the text message
+      const message = `🎉 *Order Confirmation* 
 
 Hello ${orderDetails.customerName}!
 
@@ -146,7 +190,63 @@ We'll notify you when your order ships. Thank you for shopping with Currency Gif
 
 For any queries, feel free to contact us.`;
 
-    return await this.sendMessage(phoneNumber, message);
+      const textResult = await this.sendMessage(phoneNumber, message);
+      console.log('📤 Text message sent result:', textResult);
+      
+      // If there are custom images, send them with a single consolidated message
+      if (orderDetails.customImages && orderDetails.customImages.length > 0) {
+        console.log('📸 Sending custom images for review...');
+        
+        // Wait a moment before sending images
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        const imageMessage = `📸 *Custom Images Review Required*
+
+Hello ${orderDetails.customerName}, please review your uploaded images for Order #${orderDetails.orderId}:
+
+📋 *Next Steps:*
+✅ Review each image carefully
+✅ Reply *"CONFIRMED"* if images look good
+❌ Contact us immediately if changes needed
+
+*${orderDetails.customImages.length} image(s) attached below* 👇`;
+
+        await this.sendMessage(phoneNumber, imageMessage);
+        
+        // Send each image with minimal caption
+        for (let i = 0; i < orderDetails.customImages.length; i++) {
+          const imageUrl = orderDetails.customImages[i];
+          const caption = `Image ${i + 1}/${orderDetails.customImages.length}`;
+          
+          console.log(`📷 Sending image ${i + 1}/${orderDetails.customImages.length}:`, imageUrl);
+          
+          try {
+            const mediaResult = await this.sendMediaMessage(phoneNumber, imageUrl, caption);
+            console.log(`📤 Image ${i + 1} sent result:`, mediaResult);
+            
+            // Small delay between images
+            if (i < orderDetails.customImages.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 800));
+            }
+          } catch (error) {
+            console.error(`❌ Failed to send image ${i + 1}:`, error);
+          }
+        }
+        
+        // Single final confirmation message after all images
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const finalResult = await this.sendMessage(phoneNumber, `⏳ *Awaiting Your Confirmation*\n\nOnce confirmed, we'll begin production. Thank you! �`);
+        console.log('📤 Final confirmation message sent result:', finalResult);
+      } else {
+        console.log('📭 No custom images found, skipping image sending');
+      }
+      
+      return textResult;
+      
+    } catch (error) {
+      console.error('❌ Error sending order confirmation:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   // Send welcome message
@@ -216,7 +316,7 @@ Your order #${orderDetails.orderId} status has been updated:
   }
 
   // Wait for QR code generation
-  async waitForQRCode(timeout = 10000) {
+  async waitForQRCode(timeout = 60000) {
     return new Promise((resolve, reject) => {
       if (this.currentQRCode) {
         resolve(this.currentQRCode);

@@ -110,19 +110,19 @@ const getWhatsAppQRCode = async (req, res) => {
         qrCode,
         adminPhone,
         isReady: false,
-        message: 'Scan QR code with WhatsApp on phone: 9381502998'
+        message: 'Scan QR code with WhatsApp on phone: 9392464563'
       });
     }
 
     // If no QR code and not ready, try to generate one
     try {
-      const newQRCode = await whatsAppService.waitForQRCode(5000);
+      const newQRCode = await whatsAppService.waitForQRCode(60000);
       res.json({
         success: true,
         qrCode: newQRCode,
         adminPhone,
         isReady: false,
-        message: 'Scan QR code with WhatsApp on phone: 9381502998'
+        message: 'Scan QR code with WhatsApp on phone: 9392464563'
       });
     } catch (error) {
       res.json({
