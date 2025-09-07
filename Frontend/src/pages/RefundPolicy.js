@@ -26,6 +26,7 @@ const RefundPolicy = () => {
           <li>In case of manufacturing defects, we offer free replacement</li>
           <li>Damage must be reported within 24 hours of delivery with clear photos</li>
           <li>Shipping damages must be reported immediately upon delivery</li>
+          <li>Once we receive the damaged product, we will deliver the new product in 7 business days</li>
         </ul>
 
         <h2>Refund Process</h2>
@@ -33,7 +34,7 @@ const RefundPolicy = () => {
           <li>Submit your refund request with order details</li>
           <li>Our team will review your request within 48 hours</li>
           <li>If approved, refund will be processed to original payment method</li>
-          <li>Refund may take 5-7 working days to reflect in your account</li>
+          <li>Refund will be credited in 5-7 business days </li>
         </ol>
 
         <h2>Non-Refundable Cases</h2>
