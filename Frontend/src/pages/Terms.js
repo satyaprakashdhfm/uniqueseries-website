@@ -6,17 +6,6 @@ const Terms = () => {
     <div className="terms-container">
       <h1>Terms & Conditions</h1>
       <div className="terms-content">
-        <p>This document is an electronic record in terms of Information Technology Act, 2000 and rules 
-        there under as applicable and the amended provisions pertaining to electronic records in various 
-        statutes as amended by the Information Technology Act, 2000. This electronic record is generated 
-        by a computer system and does not require any physical or digital signatures.</p>
-
-        <p>This document is published in accordance with the provisions of Rule 3 (1) of the Information 
-        Technology (Intermediaries guidelines) Rules, 2011 that require publishing the rules and 
-        regulations, privacy policy and Terms of Use for access or usage of domain name https://uniqueseries.shop/ 
-        ('Website'), including the related mobile site and mobile application (hereinafter 
-        referred to as 'Platform').</p>
-
         <p>The Platform is owned by Unique Series, operated by Kummitha Satya Prakash Reddy, with its registered office at 
         Vijayawada, Andhra Pradesh, India (hereinafter 
         referred to as 'Platform Owner', 'we', 'us', 'our').</p>
