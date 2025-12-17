@@ -1,8 +1,3 @@
--- Railway PostgreSQL Deployment Script
--- Currency Gift Store Database Schema
--- Optimized for Railway Cloud PostgreSQL Database
--- Version 2.0 - Production Ready
-
 -- Railway PostgreSQL connection settings
 SET statement_timeout = 0;
 SET lock_timeout = 0;
