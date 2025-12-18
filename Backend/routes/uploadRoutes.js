@@ -14,6 +14,20 @@ const slugifySafe = (val, fallback = '') => {
     .replace(/^-|-$/g, '');
 };
 
+// Helper to sanitize Cloudinary errors so we do not leak API keys in logs
+const sanitizeError = (err) => {
+  try {
+    const raw = (err && err.message) ? err.message : String(err);
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    if (apiKey && raw.includes(apiKey)) {
+      return raw.replace(new RegExp(apiKey, 'g'), '***REDACTED***');
+    }
+    return raw;
+  } catch (e) {
+    return 'Error (unable to sanitize)';
+  }
+};
+
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -89,7 +103,12 @@ router.post('/', upload.single('image'), (req, res) => {
           });
         })
         .catch((err) => {
-          console.error('Cloudinary upload error:', err);
+          const sanitized = sanitizeError(err);
+          console.error('Cloudinary upload error:', sanitized);
+          // If it's an auth error, return explicit 502 so caller knows to check creds
+          if (err && err.http_code === 401) {
+            return res.status(502).json({ success: false, message: 'Cloudinary authentication failed. Please verify CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET (do not commit them).' });
+          }
           // Fallback: keep local file URL
           const imageUrl = `/uploads/${req.file.filename}`;
           return res.json({ success: true, imageUrl, originalName: req.file.originalname, note: 'Cloudinary failed; using local file' });
@@ -143,9 +162,14 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
             try { fs.unlinkSync(localPath); } catch {}
             return { imageUrl: uploaded.secure_url, public_id: uploaded.public_id, folder: baseFolder, originalName: file.originalname };
           } catch (err) {
-            console.error('Cloudinary upload error (multiple):', err);
+            const sanitized = sanitizeError(err);
+            console.error('Cloudinary upload error (multiple):', sanitized);
             // Ensure local temp file is cleaned even on failure
             try { fs.unlinkSync(localPath); } catch {}
+            // If auth error, mark it specifically so the route can return a helpful response
+            if (err && err.http_code === 401) {
+              return { error: 'cloudinary_auth_failed' };
+            }
             // No local fallback when Cloudinary is configured
             return { error: 'cloudinary_failed' };
           }
@@ -153,9 +177,18 @@ router.post('/multiple', upload.array('images', 10), async (req, res) => {
       );
       const successes = results.filter((r) => r && !r.error);
       const failed = results.length - successes.length;
+
+      // If any auth failures occurred, return explicit 502 with guidance
+      const authFailed = results.some((r) => r && r.error === 'cloudinary_auth_failed');
+      if (authFailed) {
+        console.error('[Cloudinary] One or more uploads failed due to invalid credentials.');
+        return res.status(502).json({ success: false, message: 'Cloudinary authentication failed. Please verify CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET (do not commit them).' });
+      }
+
       if (successes.length === 0) {
         return res.status(502).json({ success: false, message: 'All uploads to Cloudinary failed' });
       }
+
       return res.json({ success: true, images: successes, count: successes.length, failed });
     } else {
       const results = req.files

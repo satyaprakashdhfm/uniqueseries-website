@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './WhatsAppManager.css';
 
 const WhatsAppManager = () => {
@@ -41,7 +41,16 @@ const WhatsAppManager = () => {
   };
 
   // Get QR code
-  const getQRCode = async () => {
+  // Keep a ref of loading so timeouts can check latest value without creating
+  // stale-closure dep cycles for useEffect
+  const loadingRef = useRef(whatsappStatus.loading);
+
+  // Sync ref when loading changes
+  useEffect(() => {
+    loadingRef.current = whatsappStatus.loading;
+  }, [whatsappStatus.loading]);
+
+  const getQRCode = useCallback(async () => {
     try {
       setWhatsappStatus(prev => ({ ...prev, loading: true }));
       const response = await fetch('/api/notifications/whatsapp/qrcode', {
@@ -65,7 +74,8 @@ const WhatsAppManager = () => {
       // If not ready and no QR code, auto-refresh after 5 seconds (reduced frequency)
       if (!data.isReady && !data.qrCode) {
         setTimeout(() => {
-          if (!whatsappStatus.loading) {
+          // use loadingRef to check the latest loading state
+          if (!loadingRef.current) {
             getQRCode();
           }
         }, 5000);
@@ -78,7 +88,7 @@ const WhatsAppManager = () => {
         message: 'Error getting QR code'
       }));
     }
-  };
+  }, []);
 
   // Initialize WhatsApp
   const initializeWhatsApp = async () => {
@@ -200,7 +210,7 @@ const WhatsAppManager = () => {
       clearInterval(statusInterval);
       clearInterval(qrInterval);
     };
-  }, [whatsappStatus.isReady, whatsappStatus.qrCode]);
+  }, [whatsappStatus.isReady, whatsappStatus.qrCode, whatsappStatus.loading, getQRCode]);
 
   return (
     <div className="whatsapp-manager">

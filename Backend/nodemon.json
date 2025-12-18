@@ -1,0 +1,11 @@
+{
+  "watch": [".", "config", "controllers", "routes", "middleware", "models", "utils"],
+  "ignore": ["node_modules", "uploads", ".git", "dist", "build", "*.lock"],
+  "ext": "js",
+  "delay": 1000,
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "legacyWatch": false,
+  "verbose": true
+}

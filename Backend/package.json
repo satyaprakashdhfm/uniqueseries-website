@@ -37,7 +37,7 @@
     "sequelize": "^6.32.1",
     "stripe": "^12.9.0",
     "uuid": "^9.0.0",
-    "whatsapp-web.js": "^1.22.2"
+    "whatsapp-web.js": "^1.34.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"

@@ -4,16 +4,19 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderAPI } from '../services/api';
 import api from '../services/api';
+import QRCode from 'qrcode.react';
 import './Payment.css';
 
 const Payment = () => {
   const { cartItems, cartTotals, clearCart } = useCart();
   const { user } = useAuth();
-  const [paymentMethod, setPaymentMethod] = useState('card');
   const [isPlacing, setIsPlacing] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, type: 'percent'|'freeship', value }
   const [couponError, setCouponError] = useState('');
+  const [showUpiPayment, setShowUpiPayment] = useState(false);
+  const [upiLink, setUpiLink] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
   const [formData, setFormData] = useState({
     // Billing Info (pre-filled from user if available)
     fullName: user?.name || '',
@@ -22,20 +25,20 @@ const Payment = () => {
     address: '',
     city: '',
     state: '',
-    pincode: '',
-    
-    // Card Info
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    cardName: '',
-    
-    // UPI Info
-    upiId: ''
+    pincode: ''
   });
 
   const navigate = useNavigate();
   const maxDeliveryDays = Math.max(0, ...cartItems.map(i => (i.w_days ?? 5)));
+
+  // Detect if mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = /mobile|android|iphone|ipad|phone/i.test(navigator.userAgent);
+      setIsMobile(isMobileDevice);
+    };
+    checkMobile();
+  }, []);
 
   // Derive shipping and discount with coupon preview
   const baseShipping = cartTotals.shipping || 0;
@@ -75,6 +78,13 @@ const Payment = () => {
     };
     fetchImgs();
   }, [cartItems]);
+
+  // Generate UPI deep link
+  const generateUpiLink = (merchantVpa, merchantName, amount, refId, description) => {
+    const encodedName = encodeURIComponent(merchantName);
+    const encodedDesc = encodeURIComponent(description);
+    return `upi://pay?pa=${merchantVpa}&pn=${encodedName}&am=${amount}&tr=${refId}&tn=${encodedDesc}&cu=INR`;
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -117,129 +127,73 @@ const Payment = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.city || !formData.state || !formData.pincode) {
+      alert('Please fill all required fields');
+      return;
+    }
+
     setIsPlacing(true);
     try {
-      const cart_items = cartItems.map(item => {
-        let datewith_instructions = '';
-        const c = item.customization || {};
-        const typeStr = (item.type || item.category || '').toLowerCase();
-        const isResin = typeStr.includes('resin');
-        if (isResin) {
-          const isSmall = (item.id || item.name || '').toLowerCase().includes('small');
-          if (isSmall) {
-            // Small Resin: include Event and Event Date with fallback
-            const name = c.resinName1 || c.names || 'Not given';
-            const event = c.resinEvent || 'Not given';
-            const eventDate = c.resinEventDate || 'Not given';
-            datewith_instructions = `Small Resin 8x15 inches | Name: ${name} | Event: ${event} | Event Date: ${eventDate}`.trim();
-          } else {
-            // Large Resin: include Event and Event Date with fallback
-            const p1 = `${c.resinName1 || 'Not given'} - ${c.resinDate1 || 'Not given'}`.trim();
-            const p2 = `${c.resinName2 || 'Not given'} - ${c.resinDate2 || 'Not given'}`.trim();
-            const event = c.resinEvent || 'Not given';
-            const eventDate = c.resinEventDate || 'Not given';
-            datewith_instructions = `Large Resin 13x19 inches | Person 1: ${p1} | Person 2: ${p2} | Event: ${event} | Event Date: ${eventDate}`.trim();
-          }
-        } else if (item.customization) {
-          const customizationParts = [];
-          if (c.specialData) customizationParts.push(`Special Date: ${c.specialData}`);
-          if (c.names) customizationParts.push(`Names: ${c.names}`);
-          const catNonResin = (item.category || item.type || '').toLowerCase();
-          const isFrameNonResin = catNonResin.includes('frame') && !catNonResin.includes('resin');
-          if (isFrameNonResin) {
-            // Include frame person details if available
-            if (c.frameName1 || c.frameDate1) customizationParts.push(`Person 1: ${(c.frameName1 || 'Not given')} - ${(c.frameDate1 || 'Not given')}`);
-            if (c.frameName2 || c.frameDate2) customizationParts.push(`Person 2: ${(c.frameName2 || 'Not given')} - ${(c.frameDate2 || 'Not given')}`);
-            // Event and Event Date
-            const evt = c.event || c.frameEvent || c.customEvent;
-            if (evt) customizationParts.push(`Event: ${evt}`);
-            const evtDate = c.frameEventDate || '';
-            if (evtDate) customizationParts.push(`Event Date: ${evtDate}`);
-            // Custom Names array
-            if (Array.isArray(c.customNames) && c.customNames.filter(Boolean).length > 0) {
-              const namesList = c.customNames.filter(Boolean).join(', ');
-              customizationParts.push(`Names: ${namesList}`);
-            }
-            // Custom Notes array (date + currency)
-            if (Array.isArray(c.customNotes) && c.customNotes.length > 0) {
-              const notesList = c.customNotes
-                .map((n, i) => {
-                  const d = (n && n.date) ? n.date : '—';
-                  const cur = (n && (n.currency || n.denomination)) ? (n.currency || n.denomination) : '—';
-                  return `${d}-${cur}`;
-                })
-                .join(', ');
-              customizationParts.push(`Notes: ${notesList}`);
-            }
-            // Include frame set type if present
-            if (c.frameSetType) customizationParts.push(`Set: ${c.frameSetType}`);
-          }
-          if (c.description) customizationParts.push(`Description: ${c.description}`);
-          if (customizationParts.length > 0) datewith_instructions = customizationParts.join(' | ');
-        }
-
-        // Ensure datewith_instructions is never null
-        if (datewith_instructions === null || datewith_instructions === undefined) {
-          datewith_instructions = '';
-        }
-
-        const imgs = Array.isArray(item.customization?.imageUrls)
-          ? item.customization.imageUrls.filter(Boolean)
-          : (item.customization?.imageUrl ? [item.customization.imageUrl] : []);
-        const folder = item.customization?.folder || '';
-        const priceBreakdown = item.priceBreakdown || item.customization?.priceBreakdown;
-
-        // If we have a price breakdown, append a concise summary into instructions
-        if (priceBreakdown) {
-          const baseStr = `Base ₹${priceBreakdown.base}`;
-          const extrasStr = Array.isArray(priceBreakdown.extras) && priceBreakdown.extras.length > 0
-            ? priceBreakdown.extras.map((ex) => {
-                const hasLetters = ex.letters !== undefined && ex.letters !== null && ex.letters !== '';
-                const lettersPart = hasLetters ? ` (${ex.letters} letters)` : '';
-                return `${ex.label}${lettersPart} ₹${ex.cost}`;
-              }).join(', ')
-            : 'No extras';
-          const totalExtrasStr = `Extras Total ₹${priceBreakdown.totalExtras}`;
-          const pricingLine = `Pricing: ${baseStr}; ${extrasStr}; ${totalExtrasStr}`;
-          datewith_instructions = [datewith_instructions, pricingLine].filter(Boolean).join(' | ');
-        }
-
-        return {
-          product_name: item.id, // Corresponds to product's primary key
-          quantity: item.quantity || 1,
-          // Save the first image URL for display in orders (DB unchanged)
-          custom_photo_url: (imgs.length > 0 ? imgs[0] : null),
-          // Also include all image URLs (backend will ignore if unsupported)
-          custom_photo_urls: imgs,
-          // Provide the pending folder so backend can move assets and save final folder path
-          custom_photo_folder: folder || null,
-          datewith_instructions,
-          // Include structured price breakdown for server logs/tracing
-          price_breakdown: priceBreakdown
-        };
-      });
-
       const orderData = {
         customer_name: formData.fullName,
         customer_email: formData.email,
         customer_phone: formData.phone,
         shipping_address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
-        cart_items,
         coupon_code: couponCode?.trim() || undefined
       };
 
       const order = await orderAPI.create(orderData);
 
-      clearCart();
-      const nums = order.order_numbers || (order.order_number ? [order.order_number] : []);
-      const msg = `Payment successful! Orders ${nums.join(', ')} placed. Ref: ${order.upi_reference_id}`;
-      alert(msg);
-      navigate('/account');
+      // Instead of navigating, show UPI payment UI
+      if (order && order.order_number) {
+        console.log('✅ Order created:', order);
+        console.log('📱 Device is mobile:', isMobile);
+        
+        // Generate UPI deep link using the merchant VPA
+        const upiDeepLink = generateUpiLink(
+          'satyaprakashreddy6789-1@oksbi', // Merchant VPA
+          'Currency Gift Store',
+          Math.round(finalTotal), // Amount
+          order.upi_reference_id || ('UPI' + Date.now()),
+          `Payment for Order ${order.order_number}`
+        );
+        
+        console.log('🔗 UPI Link generated:', upiDeepLink);
+        
+        setUpiLink(upiDeepLink);
+        setShowUpiPayment(true);
+        
+        console.log('✅ UPI Payment state updated');
+        
+        // Clear cart after successful order creation
+        clearCart();
+        
+        // If mobile, open the deep link immediately
+        if (isMobile) {
+          console.log('📱 Opening UPI link on mobile...');
+          setTimeout(() => {
+            window.location.href = upiDeepLink;
+          }, 500);
+        }
+      }
 
     } catch (error) {
       console.error('Order creation failed:', error);
-      alert(`Order failed: ${error.message}`);
-    } finally {
+      console.error('Error response:', error.response?.data);
+      
+      let errorMsg = error.message;
+      if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        errorMsg = error.response.data.errors.map(e => e.msg || e.message || String(e)).join(', ');
+      } else if (error.response?.data) {
+        errorMsg = JSON.stringify(error.response.data);
+      }
+      
+      console.error('Final error message:', errorMsg);
+      alert(`Order failed: ${errorMsg}`);
       setIsPlacing(false);
     }
   };
@@ -536,123 +490,120 @@ const Payment = () => {
                 </div>
               </div>
 
-              {/* Payment Method */}
+              {/* Payment Method - UPI Only */}
               <div className="form-section">
                 <h2>Payment Method</h2>
-                <div className="payment-methods">
-                  <label className={`payment-method ${paymentMethod === 'card' ? 'selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="card"
-                      checked={paymentMethod === 'card'}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
-                    <span className="method-icon">💳</span>
-                    <span>Credit/Debit Card</span>
-                  </label>
-                  
-                  <label className={`payment-method ${paymentMethod === 'upi' ? 'selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="upi"
-                      checked={paymentMethod === 'upi'}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
-                    <span className="method-icon">📱</span>
-                    <span>UPI</span>
-                  </label>
+                <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                  <span className="method-icon" style={{ fontSize: '2rem' }}>📱</span>
+                  <p style={{ margin: '10px 0 0 0', fontSize: '0.9rem', color: '#666' }}>
+                    Pay with UPI using Google Pay, PhonePe, or any UPI app
+                  </p>
                 </div>
-
-                {/* Card Payment Form */}
-                {paymentMethod === 'card' && (
-                  <div className="card-form">
-                    <div className="form-grid">
-                      <div className="form-group full-width">
-                        <label htmlFor="cardNumber">Card Number *</label>
-                        <input
-                          type="text"
-                          id="cardNumber"
-                          name="cardNumber"
-                          value={formData.cardNumber}
-                          onChange={handleChange}
-                          placeholder="1234 5678 9012 3456"
-                          required
-                          className="form-input"
-                        />
-                      </div>
-                      
-                      <div className="form-group">
-                        <label htmlFor="expiryDate">Expiry Date *</label>
-                        <input
-                          type="text"
-                          id="expiryDate"
-                          name="expiryDate"
-                          value={formData.expiryDate}
-                          onChange={handleChange}
-                          placeholder="MM/YY"
-                          required
-                          className="form-input"
-                        />
-                      </div>
-                      
-                      <div className="form-group">
-                        <label htmlFor="cvv">CVV *</label>
-                        <input
-                          type="text"
-                          id="cvv"
-                          name="cvv"
-                          value={formData.cvv}
-                          onChange={handleChange}
-                          placeholder="123"
-                          required
-                          className="form-input"
-                        />
-                      </div>
-                      
-                      <div className="form-group full-width">
-                        <label htmlFor="cardName">Name on Card *</label>
-                        <input
-                          type="text"
-                          id="cardName"
-                          name="cardName"
-                          value={formData.cardName}
-                          onChange={handleChange}
-                          required
-                          className="form-input"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* UPI Payment Form */}
-                {paymentMethod === 'upi' && (
-                  <div className="upi-form">
-                    <div className="form-group">
-                      <label htmlFor="upiId">UPI ID *</label>
-                      <input
-                        type="text"
-                        id="upiId"
-                        name="upiId"
-                        value={formData.upiId}
-                        onChange={handleChange}
-                        placeholder="yourname@paytm"
-                        required
-                        className="form-input"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                
               </div>
 
               <button type="submit" className="btn btn-primary place-order-btn" disabled={isPlacing} aria-busy={isPlacing}>
-                {isPlacing ? 'Placing Order…' : `Place Order - ₹${finalTotal}`}
+                {isPlacing ? 'Placing Order…' : `Pay with UPI - ₹${finalTotal}`}
               </button>
             </form>
+
+            {/* UPI Payment Display */}
+            {showUpiPayment && (
+              <div style={{ marginTop: '40px', padding: '30px', background: '#fff', border: '2px solid #007bff', borderRadius: '8px', textAlign: 'center' }}>
+                <h2 style={{ marginBottom: '15px', color: '#007bff' }}>💳 Payment Required</h2>
+                
+                {!isMobile && upiLink && (
+                  <>
+                    <h3 style={{ marginBottom: '15px' }}>Scan QR Code to Pay</h3>
+                    <p style={{ marginBottom: '20px', color: '#666', fontSize: '0.95rem' }}>
+                      Scan this QR code with Google Pay, PhonePe, or any UPI app on your phone to complete payment
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
+                      <div>
+                        <QRCode 
+                          value={upiLink} 
+                          size={300}
+                          level="H"
+                          includeMargin={true}
+                          fgColor="#000000"
+                          bgColor="#ffffff"
+                        />
+                        <p style={{ marginTop: '10px', fontSize: '0.85rem', color: '#999' }}>
+                          Amount: ₹{finalTotal}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ padding: '15px', background: '#e7f3ff', borderRadius: '6px', marginBottom: '20px' }}>
+                      <p style={{ margin: 0, fontSize: '0.9rem', color: '#0066cc' }}>
+                        ℹ️ After payment is confirmed, your order will be saved in your account.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => navigate('/account')}
+                      style={{
+                        padding: '12px 24px',
+                        background: '#28a745',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      View Order History
+                    </button>
+                  </>
+                )}
+                
+                {isMobile && upiLink && (
+                  <>
+                    <h3 style={{ marginBottom: '15px' }}>Tap to Open UPI App</h3>
+                    <p style={{ marginBottom: '20px', color: '#666', fontSize: '0.95rem' }}>
+                      Tap the button below to open your UPI payment app
+                    </p>
+                    <a 
+                      href={upiLink}
+                      style={{
+                        display: 'inline-block',
+                        padding: '15px 40px',
+                        background: '#007bff',
+                        color: '#fff',
+                        borderRadius: '6px',
+                        textDecoration: 'none',
+                        fontWeight: 600,
+                        fontSize: '1rem',
+                        marginBottom: '20px'
+                      }}
+                    >
+                      📱 Open Payment App
+                    </a>
+                    <div style={{ padding: '15px', background: '#e7f3ff', borderRadius: '6px', marginBottom: '20px' }}>
+                      <p style={{ margin: 0, fontSize: '0.9rem', color: '#0066cc' }}>
+                        ℹ️ Amount to pay: ₹{finalTotal}
+                      </p>
+                      <p style={{ margin: '8px 0 0 0', fontSize: '0.85rem', color: '#0066cc' }}>
+                        Your order will be confirmed after successful payment.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => navigate('/account')}
+                      style={{
+                        padding: '12px 24px',
+                        background: '#28a745',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      View Order History
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Order Summary moved above; removed duplicate block here */}

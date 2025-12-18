@@ -87,20 +87,10 @@ exports.orderValidator = [
   
   check('shipping_address')
     .notEmpty()
-    .withMessage('Shipping address is required'),
+    .withMessage('Shipping address is required')
 
-  // cart_items array validation
-  check('cart_items')
-    .isArray({ min: 1 })
-    .withMessage('cart_items must be a non-empty array'),
-
-  // per-item validation (prices are resolved server-side)
-  check('cart_items.*.product_name')
-    .notEmpty()
-    .withMessage('Each cart item must have product_name'),
-  check('cart_items.*.quantity')
-    .isInt({ min: 1 })
-    .withMessage('Each cart item must have a valid quantity')
+  // Note: cart_items are read from Cart table, not from request body
+  // So we don't validate them here
 ];
 
 // UPI payment verification validator

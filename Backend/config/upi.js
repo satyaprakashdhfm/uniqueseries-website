@@ -3,8 +3,8 @@ require('dotenv').config();
 
 // UPI Merchant Configuration
 const upiConfig = {
-  merchantId: process.env.UPI_MERCHANT_ID || 'DUMMY_MERCHANT_ID',
-  merchantVpa: process.env.UPI_MERCHANT_VPA || 'merchant@bank',
+  merchantId: process.env.UPI_MERCHANT_ID || 'CURRENCY_GIFT_STORE_001',
+  merchantVpa: process.env.UPI_MERCHANT_VPA || 'satyaprakashreddy6789-1@oksbi',
   merchantName: 'Currency Gift Store',
   currency: 'INR'
 };

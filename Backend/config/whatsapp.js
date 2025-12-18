@@ -91,6 +91,42 @@ class WhatsAppService {
     }
   }
 
+  // Fetch/open a chat to ensure it's in the cache (fixes "Lid is missing" error)
+  async fetchChat(chatId) {
+    try {
+      // Simply get the chat object
+      const chat = await this.client.getChatById(chatId);
+      console.log(`✅ Chat fetched for ${chatId}`);
+      return chat;
+    } catch (error) {
+      console.warn(`⚠️ Warning fetching chat ${chatId}:`, error.message);
+      return null;
+    }
+  }
+
+  // Send message with retry on "Lid is missing" error
+  async sendMessageWithRetry(chatId, messageOrMedia, options = {}, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`📤 Sending message (attempt ${attempt}/${retries})...`);
+        const response = await this.client.sendMessage(chatId, messageOrMedia, options);
+        return response;
+      } catch (error) {
+        const errorMsg = error.message || '';
+        
+        // If it's the "Lid is missing" error and we have retries left, wait and retry
+        if (errorMsg.includes('Lid is missing') && attempt < retries) {
+          console.warn(`⚠️ 'Lid is missing' error, retrying in 2 seconds (attempt ${attempt}/${retries})...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
+        
+        // For other errors or last attempt, throw
+        throw error;
+      }
+    }
+  }
+
   // Send a text message
   async sendMessage(phoneNumber, message) {
     try {
@@ -102,12 +138,20 @@ class WhatsAppService {
       const formattedNumber = this.formatPhoneNumber(phoneNumber);
       const chatId = `${formattedNumber}@c.us`;
 
-      const response = await this.client.sendMessage(chatId, message);
+      // Fetch chat first 
+      console.log(`📱 Preparing chat for ${phoneNumber}...`);
+      await this.fetchChat(chatId);
+      
+      // Add a small delay before sending to ensure chat is ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Send with retry mechanism
+      const response = await this.sendMessageWithRetry(chatId, message);
       console.log(`✅ WhatsApp message sent to ${phoneNumber}`);
       return { success: true, messageId: response.id.id };
       
     } catch (error) {
-      console.error('❌ Error sending WhatsApp message:', error);
+      console.error('❌ Error sending WhatsApp message:', error.message);
       return { success: false, error: error.message };
     }
   }
@@ -130,17 +174,25 @@ class WhatsAppService {
       console.log('📱 Formatted number:', formattedNumber);
       console.log('💬 Chat ID:', chatId);
 
+      // Fetch chat first
+      console.log(`📱 Preparing chat for ${phoneNumber}...`);
+      await this.fetchChat(chatId);
+      
+      // Add a small delay before sending to ensure chat is ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       // Download and create MessageMedia from URL
       console.log('⬇️ Creating MessageMedia from URL...');
       const media = await MessageMedia.fromUrl(imageUrl);
       console.log('✅ MessageMedia created successfully');
       
-      const response = await this.client.sendMessage(chatId, media, { caption });
+      // Send with retry mechanism
+      const response = await this.sendMessageWithRetry(chatId, media, { caption });
       console.log(`✅ WhatsApp media message sent to ${phoneNumber}:`, response.id.id);
       return { success: true, messageId: response.id.id };
       
     } catch (error) {
-      console.error('❌ Error sending WhatsApp media message:', error);
+      console.error('❌ Error sending WhatsApp media message:', error.message);
       return { success: false, error: error.message };
     }
   }

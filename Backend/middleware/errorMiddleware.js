@@ -17,7 +17,9 @@ const notFound = (req, res, next) => {
 // General error handler
 const errorHandler = (err, req, res, next) => {
   // Default to 500 if statusCode not specified
-  const statusCode = err.statusCode || res.statusCode === 200 ? 500 : res.statusCode;
+  // Use parentheses to ensure correct precedence: if err.statusCode is present use it,
+  // otherwise if response code is still 200 return 500, else use res.statusCode
+  const statusCode = err.statusCode || (res.statusCode === 200 ? 500 : res.statusCode);
   const errorCode = err.code || 'server_error';
   
   // Log error for debugging (could use a proper logger in production)
