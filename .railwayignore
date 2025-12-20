@@ -1,0 +1,18 @@
+# Ignore Frontend when deploying Backend
+Frontend/
+frontend/
+
+# Ignore node_modules (will be installed fresh)
+node_modules/
+
+# Ignore local uploads (use Cloudinary)
+Backend/uploads/
+
+# Ignore development files
+*.log
+.env.local
+.DS_Store
+
+# Ignore documentation
+*.md
+!README.md
